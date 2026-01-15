@@ -1,90 +1,111 @@
 import React, { useState } from 'react';
-import { Factory, ArrowRight, CheckCircle, AlertTriangle } from 'lucide-react';
-import { useStore } from '../store/StoreContext';
+import { Factory, AlertCircle, Check } from 'lucide-react';
+import { useInventoryStore } from '../store/inventoryStore';
 
 const ProductionManager = () => {
-    const { products, ingredients, produceProduct } = useStore();
+    const { products, ingredients, produceProduct, addToast } = useInventoryStore();
+    const [selectedProduct, setSelectedProduct] = useState('');
+    const [quantity, setQuantity] = useState(1);
 
-    const [selectedProductId, setSelectedProductId] = useState('');
-    const [quantity, setQuantity] = useState('1');
-    const [status, setStatus] = useState(null); // { type: 'success' | 'error', msg: '' }
+    const product = products.find(p => p.id === selectedProduct);
 
-    const selectedProduct = products.find(p => p.id === selectedProductId);
+    const canProduce = () => {
+        if (!product) return { can: false, missing: [] };
+
+        const missing = [];
+        product.recipe?.forEach(item => {
+            const required = item.amount * quantity;
+            const stock = ingredients.find(i => i.id === item.ingredientId);
+            if (!stock || stock.quantity < required) {
+                missing.push({
+                    name: stock?.name || 'Неизвестно',
+                    required,
+                    available: stock?.quantity || 0
+                });
+            }
+        });
+
+        return { can: missing.length === 0, missing };
+    };
+
+    const { can, missing } = canProduce();
+    const getIngredientName = (id) => ingredients.find(i => i.id === id)?.name || 'Неизвестно';
+    const getIngredientStock = (id) => ingredients.find(i => i.id === id)?.quantity || 0;
 
     const handleProduce = () => {
-        if (!selectedProduct) return;
-        setStatus(null);
+        if (!selectedProduct || quantity <= 0) return;
 
-        const result = produceProduct(selectedProductId, Number(quantity));
-
+        const result = produceProduct(selectedProduct, quantity);
         if (result.success) {
-            setStatus({ type: 'success', msg: `Производство успешно записано! Списаны материалы.` });
-            setQuantity('1');
+            addToast(`Произведено ${quantity} ${product.unit} "${product.name}"`, 'success');
+            setQuantity(1);
         } else {
-            setStatus({ type: 'error', msg: result.error });
+            addToast(result.error, 'error');
         }
     };
 
-    const getIngName = (id) => ingredients.find(i => i.id === id)?.name;
-    const getIngUnit = (id) => ingredients.find(i => i.id === id)?.unit;
-    const getStock = (id) => ingredients.find(i => i.id === id)?.quantity || 0;
-
     return (
-        <div className="max-w-3xl mx-auto space-y-6">
-            <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900 m-0">Регистрация производства</h2>
-                <p className="text-gray-500 text-sm mt-1">Выберите продукт, укажите количество, и система спишет сырьё.</p>
-            </div>
+        <div className="max-w-4xl">
+            <p className="text-[var(--text-secondary)] text-sm mb-6">
+                Запишите производство и автоматически спишите сырьё со склада.
+            </p>
 
-            <div className="card shadow-md border-none overflow-hidden">
-                <div className="p-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Что произвели?</label>
-                            <select
-                                className="input text-lg py-3 font-medium"
-                                value={selectedProductId}
-                                onChange={e => { setSelectedProductId(e.target.value); setStatus(null); }}
-                            >
-                                <option value="">Выберите продукт...</option>
-                                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                            </select>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium text-gray-700">Количество ({selectedProduct?.unit || 'шт'})</label>
-                            <input
-                                type="number"
-                                className="input text-lg py-3 font-medium"
-                                value={quantity}
-                                onChange={e => setQuantity(e.target.value)}
-                                min="0.1"
-                                step="0.1"
-                            />
-                        </div>
+            <div className="card max-w-md">
+                <h3 className="font-bold mb-4 flex items-center gap-2">
+                    <Factory size={20} className="text-blue-600" />
+                    Регистрация производства
+                </h3>
+
+                <div className="space-y-4">
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium">Продукт</label>
+                        <select
+                            className="input"
+                            value={selectedProduct}
+                            onChange={e => setSelectedProduct(e.target.value)}
+                        >
+                            <option value="">Выберите продукт...</option>
+                            {products.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                        </select>
                     </div>
 
-                    {selectedProduct && (
-                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                            <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Калькуляция сырья</h4>
+                    <div className="space-y-1">
+                        <label className="text-sm font-medium">Количество</label>
+                        <input
+                            type="number"
+                            className="input font-mono"
+                            value={quantity}
+                            onChange={e => setQuantity(Math.max(1, Number(e.target.value)))}
+                            min={1}
+                        />
+                    </div>
+
+                    {/* Recipe Preview */}
+                    {product && product.recipe?.length > 0 && (
+                        <div className="bg-[var(--bg-page)] rounded-lg p-4 mt-4">
+                            <p className="text-sm font-medium mb-3">
+                                Будет списано:
+                            </p>
                             <div className="space-y-2">
-                                {selectedProduct.recipe.map((r, i) => {
-                                    const required = r.amount * Number(quantity);
-                                    const available = getStock(r.ingredientId);
+                                {product.recipe.map((item, idx) => {
+                                    const required = item.amount * quantity;
+                                    const available = getIngredientStock(item.ingredientId);
                                     const isEnough = available >= required;
 
                                     return (
-                                        <div key={i} className="flex justify-between items-center text-sm">
+                                        <div key={idx} className="flex items-center justify-between">
+                                            <span className="text-sm">{getIngredientName(item.ingredientId)}</span>
                                             <div className="flex items-center gap-2">
-                                                {isEnough ? <CheckCircle size={16} className="text-green-500" /> : <AlertTriangle size={16} className="text-red-500" />}
-                                                <span className="text-gray-700">{getIngName(r.ingredientId)}</span>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <span className={`font-mono font-medium ${isEnough ? 'text-gray-900' : 'text-red-600'}`}>
-                                                    {required.toFixed(2)} {getIngUnit(r.ingredientId)}
+                                                <span className={`font-mono text-sm ${isEnough ? 'text-green-600' : 'text-red-600'}`}>
+                                                    {required} / {available}
                                                 </span>
-                                                <span className="text-xs text-gray-400 w-32 text-right">
-                                                    (на складе: {available})
-                                                </span>
+                                                {isEnough ? (
+                                                    <Check size={14} className="text-green-500" />
+                                                ) : (
+                                                    <AlertCircle size={14} className="text-red-500" />
+                                                )}
                                             </div>
                                         </div>
                                     );
@@ -93,22 +114,31 @@ const ProductionManager = () => {
                         </div>
                     )}
 
-                    {status && (
-                        <div className={`p-4 rounded-lg flex items-center gap-3 ${status.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
-                            {status.type === 'success' ? <CheckCircle size={20} /> : <AlertTriangle size={20} />}
-                            <span>{status.msg}</span>
+                    {/* Error message */}
+                    {!can && missing.length > 0 && (
+                        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                            <AlertCircle size={16} />
+                            <span>Не хватает сырья для производства</span>
                         </div>
                     )}
 
                     <button
                         onClick={handleProduce}
-                        disabled={!selectedProductId || !quantity}
-                        className="btn btn-primary w-full py-4 text-lg shadow-lg shadow-blue-500/30 disabled:opacity-50 disabled:shadow-none"
+                        disabled={!selectedProduct || !can || quantity <= 0}
+                        className="btn btn-primary w-full justify-center"
                     >
+                        <Factory size={18} />
                         Записать производство
                     </button>
                 </div>
             </div>
+
+            {products.length === 0 && (
+                <div className="mt-6 text-center py-8 text-[var(--text-light)]">
+                    <Factory size={48} className="mx-auto mb-4 opacity-30" />
+                    <p>Сначала создайте продукты с рецептами</p>
+                </div>
+            )}
         </div>
     );
 };
