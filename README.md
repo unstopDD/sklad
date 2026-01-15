@@ -1,0 +1,3 @@
+# Sklad
+
+Warehouse Management System.
