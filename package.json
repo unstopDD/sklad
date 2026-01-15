@@ -8,6 +8,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@radix-ui/react-switch": "^1.2.6",
     "clsx": "^2.0.0",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.292.0",

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Search, AlertCircle, ScanLine } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, AlertCircle } from 'lucide-react';
 import { useInventoryStore } from '../store/inventoryStore';
 import SlideOver from './ui/SlideOver';
 
@@ -11,6 +11,17 @@ const IngredientManager = () => {
 
     // Form State
     const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '' });
+    const [errors, setErrors] = useState({});
+
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.name.trim()) newErrors.name = 'Введите название материала';
+        if (formData.quantity === '' || Number(formData.quantity) < 0) newErrors.quantity = 'Количество не может быть отрицательным';
+        if (formData.minStock && Number(formData.minStock) < 0) newErrors.minStock = 'Мин. остаток не может быть отрицательным';
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
 
     const openSlide = (ing = null) => {
         if (ing) {
@@ -18,18 +29,28 @@ const IngredientManager = () => {
         } else {
             setFormData({ id: null, name: '', unit: 'кг', quantity: '0', minStock: '5' });
         }
+        setErrors({});
         setIsSlideOpen(true);
     };
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        addIngredient({
+
+        if (!validate()) {
+            return;
+        }
+
+        const result = addIngredient({
             ...formData,
-            quantity: Number(formData.quantity),
-            minStock: Number(formData.minStock)
+            name: formData.name.trim(),
+            quantity: Number(formData.quantity) || 0,
+            minStock: Number(formData.minStock) || 0
         });
-        addToast(formData.id ? 'Сырьё обновлено' : 'Сырьё добавлено', 'success');
-        setIsSlideOpen(false);
+
+        if (result.success) {
+            addToast(formData.id ? 'Материал обновлён' : 'Материал добавлен', 'success');
+            setIsSlideOpen(false);
+        }
     };
 
     const handleInlineEdit = (id, value) => {
@@ -52,7 +73,7 @@ const IngredientManager = () => {
     const filtered = ingredients.filter(i => i.name.toLowerCase().includes(filter.toLowerCase()));
 
     return (
-        <div className="max-w-4xl">
+        <div className="">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
@@ -75,9 +96,6 @@ const IngredientManager = () => {
                             onChange={e => setFilter(e.target.value)}
                         />
                     </div>
-                    <button className="btn btn-secondary">
-                        <ScanLine size={18} /> Сканировать
-                    </button>
                 </div>
             </div>
 
@@ -91,7 +109,7 @@ const IngredientManager = () => {
                                 <th>Ед. изм.</th>
                                 <th className="text-right">Остаток</th>
                                 <th className="text-right">Мин.</th>
-                                <th className="text-right">Действия</th>
+                                <th style={{ textAlign: 'center' }} className="w-[120px] p-2">Действия</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -130,8 +148,8 @@ const IngredientManager = () => {
                                         <td className="text-right font-mono text-[var(--text-secondary)]">
                                             {ing.minStock || '-'}
                                         </td>
-                                        <td className="text-right">
-                                            <div className="flex items-center justify-end gap-1">
+                                        <td className="text-center w-[120px] p-2">
+                                            <div className="flex items-center justify-center gap-1">
                                                 <button
                                                     onClick={() => openSlide(ing)}
                                                     className="btn-icon"
@@ -208,22 +226,26 @@ const IngredientManager = () => {
                 onClose={() => setIsSlideOpen(false)}
                 title={formData.id ? 'Редактировать сырьё' : 'Добавить сырьё'}
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Название</label>
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                    <div>
+                        <label className="block text-sm font-medium mb-2.5">Название</label>
                         <input
-                            className="input"
-                            placeholder="Например: Ткань, Мука, Доски..."
+                            className={`input ${errors.name ? 'input-error' : ''}`}
+                            placeholder="Например: Материал А, Компонент Б..."
                             value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            onChange={e => {
+                                setFormData({ ...formData, name: e.target.value });
+                                if (errors.name) setErrors({ ...errors, name: null });
+                            }}
                             required
                             autoFocus
                         />
+                        {errors.name && <p className="error-message">{errors.name}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Ед. измерения</label>
+                        <div>
+                            <label className="block text-sm font-medium mb-2.5">Ед. измерения</label>
                             <select
                                 className="input"
                                 value={formData.unit}
@@ -232,33 +254,41 @@ const IngredientManager = () => {
                                 {units.map(u => <option key={u} value={u}>{u}</option>)}
                             </select>
                         </div>
-                        <div className="space-y-1">
-                            <label className="text-sm font-medium">Мин. остаток</label>
+                        <div>
+                            <label className="block text-sm font-medium mb-2.5">Мин. остаток</label>
                             <input
                                 type="number"
-                                className="input font-mono"
+                                className={`input font-mono ${errors.minStock ? 'input-error' : ''}`}
                                 value={formData.minStock}
-                                onChange={e => setFormData({ ...formData, minStock: e.target.value })}
+                                onChange={e => {
+                                    setFormData({ ...formData, minStock: e.target.value });
+                                    if (errors.minStock) setErrors({ ...errors, minStock: null });
+                                }}
                             />
+                            {errors.minStock && <p className="error-message">{errors.minStock}</p>}
                         </div>
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Текущий остаток</label>
+                    <div>
+                        <label className="block text-sm font-medium mb-2.5">Текущий остаток</label>
                         <input
                             type="number"
-                            className="input font-mono"
+                            className={`input font-mono ${errors.quantity ? 'input-error' : ''}`}
                             value={formData.quantity}
-                            onChange={e => setFormData({ ...formData, quantity: e.target.value })}
+                            onChange={e => {
+                                setFormData({ ...formData, quantity: e.target.value });
+                                if (errors.quantity) setErrors({ ...errors, quantity: null });
+                            }}
                             placeholder="0"
                             required
                         />
+                        {errors.quantity && <p className="error-message">{errors.quantity}</p>}
                         <p className="text-xs text-[var(--text-light)] mt-1">
                             Используйте для начального ввода или инвентаризации.
                         </p>
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 pt-6 border-t border-[var(--border)]" style={{ marginTop: '3rem' }}>
                         <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1">
                             Отмена
                         </button>

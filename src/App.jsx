@@ -6,6 +6,7 @@ import UnitManager from './components/UnitManager'
 import IngredientManager from './components/IngredientManager'
 import ProductManager from './components/ProductManager'
 import ProductionManager from './components/ProductionManager'
+import WriteOffManager from './components/WriteOffManager'
 import History from './components/History'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
                     <Route path="ingredients" element={<IngredientManager />} />
                     <Route path="products" element={<ProductManager />} />
                     <Route path="production" element={<ProductionManager />} />
+                    <Route path="writeoff" element={<WriteOffManager />} />
                     <Route path="history" element={<History />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Route>

@@ -14,6 +14,8 @@ const ProductManager = () => {
         id: null, name: '', unit: 'шт', recipe: []
     });
     const [recipeItem, setRecipeItem] = useState({ ingredientId: '', amount: '' });
+    const [errors, setErrors] = useState({});
+    const [isAddingRecipeItem, setIsAddingRecipeItem] = useState(false);
 
     const openSlide = (product = null) => {
         if (product) {
@@ -22,6 +24,8 @@ const ProductManager = () => {
             setFormData({ id: null, name: '', unit: 'шт', recipe: [] });
         }
         setRecipeItem({ ingredientId: '', amount: '' });
+        setErrors({});
+        setIsAddingRecipeItem(false);
         setIsSlideOpen(true);
     };
 
@@ -32,6 +36,7 @@ const ProductManager = () => {
                 recipe: [...formData.recipe, { ...recipeItem, amount: Number(recipeItem.amount) }]
             });
             setRecipeItem({ ingredientId: '', amount: '' });
+            setIsAddingRecipeItem(false);
         }
     };
 
@@ -42,11 +47,24 @@ const ProductManager = () => {
         });
     };
 
+    const validate = () => {
+        const newErrors = {};
+        if (!formData.name.trim()) newErrors.name = 'Введите название продукта';
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const handleSubmit = (e) => {
         e.preventDefault();
-        addProduct(formData);
-        addToast(formData.id ? 'Продукт обновлён' : 'Продукт создан', 'success');
-        setIsSlideOpen(false);
+
+        if (!validate()) return;
+
+        const result = addProduct({ ...formData, name: formData.name.trim() });
+
+        if (result.success) {
+            addToast(formData.id ? 'Продукт обновлён' : 'Продукт создан', 'success');
+            setIsSlideOpen(false);
+        }
     };
 
     const handleDelete = (id) => {
@@ -59,7 +77,7 @@ const ProductManager = () => {
     const filtered = products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
 
     return (
-        <div className="max-w-4xl">
+        <div className="">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <p className="text-[var(--text-secondary)] text-sm">
@@ -150,21 +168,25 @@ const ProductManager = () => {
                 onClose={() => setIsSlideOpen(false)}
                 title={formData.id ? 'Редактировать продукт' : 'Новый продукт'}
             >
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Название продукта</label>
+                <form onSubmit={handleSubmit} className="space-y-6" noValidate>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Название продукта</label>
                         <input
-                            className="input"
-                            placeholder="Например: Торт Наполеон"
+                            className={`input ${errors.name ? 'input-error' : ''}`}
+                            placeholder="Например: Изделие А, Комплект B..."
                             value={formData.name}
-                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            onChange={e => {
+                                setFormData({ ...formData, name: e.target.value });
+                                if (errors.name) setErrors({ ...errors, name: null });
+                            }}
                             required
                             autoFocus
                         />
+                        {errors.name && <p className="error-message mt-1">{errors.name}</p>}
                     </div>
 
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Единица измерения</label>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Единица измерения</label>
                         <select
                             className="input"
                             value={formData.unit}
@@ -174,60 +196,146 @@ const ProductManager = () => {
                         </select>
                     </div>
 
-                    {/* Recipe Builder */}
-                    <div className="space-y-2 pt-4 border-t border-[var(--border)]">
-                        <label className="text-sm font-medium">Рецепт (состав)</label>
 
-                        {formData.recipe.length > 0 && (
-                            <div className="space-y-2 mb-3">
-                                {formData.recipe.map((item, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 bg-[var(--bg-page)] p-2 rounded-lg">
-                                        <span className="flex-1 text-sm">{getIngredientName(item.ingredientId)}</span>
-                                        <span className="font-mono">{item.amount}</span>
-                                        <button
-                                            type="button"
-                                            onClick={() => removeRecipeItem(idx)}
-                                            className="text-red-500 p-1"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
+
+                    {/* Recipe Builder */}
+                    <div className="space-y-4 pt-6 border-t border-[var(--border)]">
+                        <label className="block text-sm font-medium">Рецепт (состав)</label>
+
+                        {/* Empty State */}
+                        {formData.recipe.length === 0 && !isAddingRecipeItem && (
+                            <div className="bg-[var(--bg-page)] rounded-lg p-6 border border-dashed border-[var(--border)] text-center">
+                                <div className="flex flex-col items-center gap-2 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center">
+                                        <div className="i-lucide-lightbulb text-blue-500 text-xl">💡</div>
                                     </div>
-                                ))}
+                                    <p className="text-sm text-[var(--text-secondary)]">
+                                        Добавьте ингредиенты, если продукт состоит из других позиций
+                                    </p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsAddingRecipeItem(true)}
+                                    className="btn btn-secondary w-full justify-center border-blue-200 dark:border-blue-800 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                >
+                                    <Plus size={18} /> Добавить ингредиент
+                                </button>
                             </div>
                         )}
 
-                        <div className="flex gap-2">
-                            <select
-                                className="input flex-1"
-                                value={recipeItem.ingredientId}
-                                onChange={e => setRecipeItem({ ...recipeItem, ingredientId: e.target.value })}
-                            >
-                                <option value="">Выберите сырьё...</option>
-                                {ingredients.map(ing => (
-                                    <option key={ing.id} value={ing.id}>
-                                        {ing.name} ({ing.unit})
-                                    </option>
-                                ))}
-                            </select>
-                            <input
-                                type="number"
-                                className="input w-24 font-mono"
-                                placeholder="Кол-во"
-                                value={recipeItem.amount}
-                                onChange={e => setRecipeItem({ ...recipeItem, amount: e.target.value })}
-                            />
+                        {/* Filled State (List) */}
+                        {formData.recipe.length > 0 && (
+                            <div className="space-y-3">
+                                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-[var(--text-secondary)] px-2 pb-1">
+                                    <div className="col-span-6">Ингредиент</div>
+                                    <div className="col-span-3">Кол-во</div>
+                                    <div className="col-span-3 text-right">Ед.</div>
+                                </div>
+                                <div className="space-y-2">
+                                    {formData.recipe.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 bg-[var(--bg-page)] p-2 rounded-lg group">
+                                            <div className="grid grid-cols-12 gap-2 flex-1 items-center">
+                                                <div className="col-span-6 text-sm truncate" title={getIngredientName(item.ingredientId)}>
+                                                    {getIngredientName(item.ingredientId)}
+                                                </div>
+                                                <div className="col-span-3 font-mono text-sm">
+                                                    {item.amount}
+                                                </div>
+                                                <div className="col-span-3 text-xs text-[var(--text-secondary)]">
+                                                    {ingredients.find(i => i.id === item.ingredientId)?.unit}
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => removeRecipeItem(idx)}
+                                                className="btn-icon danger opacity-0 group-hover:opacity-100"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Add Button (at bottom of list) */}
+                        {formData.recipe.length > 0 && !isAddingRecipeItem && (
                             <button
                                 type="button"
-                                onClick={addRecipeItem}
-                                className="btn btn-secondary"
-                                disabled={!recipeItem.ingredientId || !recipeItem.amount}
+                                onClick={() => setIsAddingRecipeItem(true)}
+                                className="btn btn-secondary w-full justify-center border-dashed text-[var(--text-secondary)]"
                             >
-                                <Plus size={18} />
+                                <Plus size={18} /> Добавить ингредиент
                             </button>
-                        </div>
+                        )}
+
+                        {/* Add Form (Input Mode) */}
+                        {isAddingRecipeItem && (
+                            <div className="bg-[var(--bg-page)] p-4 rounded-lg border border-[var(--primary)] space-y-4">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2.5">Ингредиент</label>
+                                        <select
+                                            className="input"
+                                            value={recipeItem.ingredientId}
+                                            onChange={e => setRecipeItem({ ...recipeItem, ingredientId: e.target.value })}
+                                            autoFocus
+                                        >
+                                            <option value="">Выберите...</option>
+                                            {ingredients.map(ing => (
+                                                <option key={ing.id} value={ing.id}>
+                                                    {ing.name} ({ing.unit})
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1">
+                                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2.5">Количество</label>
+                                            <input
+                                                type="number"
+                                                className="input font-mono"
+                                                placeholder="0.0"
+                                                value={recipeItem.amount}
+                                                onChange={e => setRecipeItem({ ...recipeItem, amount: e.target.value })}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') {
+                                                        e.preventDefault();
+                                                        addRecipeItem();
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="w-20">
+                                            <label className="block text-xs font-medium text-[var(--text-secondary)] mb-2.5">Ед.</label>
+                                            <div className="h-[44px] flex items-center text-sm text-[var(--text-secondary)]">
+                                                {recipeItem.ingredientId ? ingredients.find(i => i.id === recipeItem.ingredientId)?.unit : '-'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 justify-end" style={{ marginTop: '2rem' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAddingRecipeItem(false)}
+                                        className="btn btn-secondary text-sm"
+                                    >
+                                        Отмена
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={addRecipeItem}
+                                        className="btn btn-primary text-sm"
+                                        disabled={!recipeItem.ingredientId || !recipeItem.amount}
+                                    >
+                                        <Plus size={16} /> Добавить
+                                    </button>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
-                    <div className="flex gap-3 pt-4">
+                    <div className="flex gap-3 pt-6 border-t border-[var(--border)]" style={{ marginTop: '3rem' }}>
                         <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1">
                             Отмена
                         </button>
