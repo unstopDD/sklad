@@ -1,22 +1,22 @@
 import React from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
-import Layout from './components/Layout'
-import Dashboard from './components/Dashboard'
-import UnitManager from './components/UnitManager'
-import IngredientManager from './components/IngredientManager'
-import ProductManager from './components/ProductManager'
-import ProductionManager from './components/ProductionManager'
-import WriteOffManager from './components/WriteOffManager'
-import History from './components/History'
+import Layout from './components/core/Layout'
+import Dashboard from './components/dashboard/Dashboard'
+import UnitManager from './components/inventory/UnitManager'
+import IngredientManager from './components/inventory/IngredientManager'
+import ProductManager from './components/inventory/ProductManager'
+import ProductionManager from './components/production/ProductionManager'
+import WriteOffManager from './components/inventory/WriteOffManager'
+import History from './components/inventory/History'
 
-import { useInventoryStore } from './store/inventoryStore'; // We still check profile from store for routing
+import { useInventoryStore } from './store/inventoryStore';
 import { Loader2, RefreshCw } from 'lucide-react';
 
 import AuthPage from './components/Auth/AuthPage'
 import { AuthProvider, useAuth } from './components/Auth/AuthProvider'
-import ProtectedRoute from './components/ProtectedRoute'
-import SetupProduction from './components/SetupProduction'
-import ErrorBoundary from './components/ErrorBoundary';
+import ProtectedRoute from './components/core/ProtectedRoute'
+import SetupProduction from './components/production/SetupProduction'
+import ErrorBoundary from './components/core/ErrorBoundary';
 
 const AppContent = () => {
     const { user, loading, authError } = useAuth();

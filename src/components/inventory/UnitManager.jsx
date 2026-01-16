@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus, X, Scale } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 
 const UnitManager = () => {
     const { units, addUnit, removeUnit, addToast } = useInventoryStore();

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 import { Factory, ArrowRight } from 'lucide-react';
 
 const SetupProduction = () => {

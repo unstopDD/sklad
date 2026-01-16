@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Factory, AlertCircle, Check } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 
 const ProductionManager = () => {
     const { products, ingredients, produceProduct, addToast } = useInventoryStore();

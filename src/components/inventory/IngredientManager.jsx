@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Search, AlertCircle } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
-import SlideOver from './ui/SlideOver';
+import { useInventoryStore } from '../../store/inventoryStore';
+import SlideOver from '../ui/SlideOver';
 
 const IngredientManager = () => {
     const { ingredients, units, addIngredient, removeIngredient, updateIngredientQuantity, addToast } = useInventoryStore();

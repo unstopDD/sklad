@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, Package, Beef, AlertCircle, Check } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 
 const WriteOffManager = () => {
     const { ingredients, products, addToast, logAction, updateIngredientQuantity, updateProductQuantity } = useInventoryStore();

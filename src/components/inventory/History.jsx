@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, Factory, Trash2, FileText } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 
 const History = () => {
     const { history, clearHistory } = useInventoryStore();

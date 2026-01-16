@@ -1,7 +1,7 @@
 import React from 'react';
 import { Package, Beef, Plus, ArrowRight, Sparkles, TrendingDown, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useInventoryStore } from '../store/inventoryStore';
+import { useInventoryStore } from '../../store/inventoryStore';
 
 
 

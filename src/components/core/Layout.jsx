@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2 } from 'lucide-react';
-import { useInventoryStore } from '../store/inventoryStore';
-import Toast from './ui/Toast';
+import { useInventoryStore } from '../../store/inventoryStore';
+import Toast from '../ui/Toast';
 
 const NavItem = ({ to, icon: Icon, label, onClick }) => (
     <NavLink
