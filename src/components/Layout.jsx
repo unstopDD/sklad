@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2 } from 'lucide-react';
 import { useInventoryStore } from '../store/inventoryStore';
 import Toast from './ui/Toast';
 
@@ -78,8 +78,10 @@ const Logo = () => (
 
 const Layout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isSigningOut, setIsSigningOut] = useState(false);
+    const sidebarRef = useRef(null);
     const location = useLocation();
-    const { darkMode } = useInventoryStore();
+    const { darkMode, user, signOut, profile } = useInventoryStore();
 
     useEffect(() => {
         if (darkMode) {
@@ -89,9 +91,14 @@ const Layout = () => {
         }
     }, [darkMode]);
 
+    // Close menu when location changes
+    useEffect(() => {
+        setIsMobileMenuOpen(false);
+    }, [location]);
+
     const getPageTitle = () => {
         switch (location.pathname) {
-            case '/': return 'Главная панель';
+            case '/': return profile?.production_name || 'Главная панель';
             case '/units': return 'Единицы измерения';
             case '/ingredients': return 'Склад сырья';
             case '/products': return 'Продукты и Рецепты';
@@ -104,15 +111,25 @@ const Layout = () => {
 
     return (
         <div className={`flex min-h-screen ${darkMode ? 'dark bg-black text-white' : 'bg-white text-black'}`}>
+            {/* Skip Link for Accessibility */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg focus:outline-none"
+            >
+                Перейти к содержимому
+            </a>
+
             {/* Sidebar - Fixed */}
             <aside
+                ref={sidebarRef}
+                aria-label="Боковая навигация"
                 className={`fixed inset-y-0 left-0 z-50 w-64 sidebar-solid border-r border-gray-200 dark:border-gray-800 flex flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}
             >
                 <div className="flex items-center h-16 px-6 border-b border-gray-200 dark:border-gray-800 shrink-0">
                     <Logo />
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto flex flex-col">
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto flex flex-col" aria-label="Главное меню">
                     <div className="space-y-2">
                         <NavItem to="/" icon={LayoutDashboard} label="Главная" onClick={() => setIsMobileMenuOpen(false)} />
                         <NavItem to="/ingredients" icon={Beef} label="Склад сырья" onClick={() => setIsMobileMenuOpen(false)} />
@@ -131,31 +148,73 @@ const Layout = () => {
                     <StatsWidget />
                 </nav>
 
-                <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 flex flex-col gap-4 items-center">
+                <div className="p-4 border-t border-gray-200 dark:border-gray-800 shrink-0 flex flex-col gap-3">
+                    {/* User Info */}
+                    {user && (
+                        <div className="text-xs text-[var(--text-secondary)] text-center truncate px-2">
+                            {user.email}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={async () => {
+                            if (isSigningOut) return;
+                            setIsSigningOut(true);
+                            try {
+                                await signOut();
+                            } catch (error) {
+                                // Error is already handled in signOut with toast
+                                console.error('Logout failed:', error);
+                            } finally {
+                                setIsSigningOut(false);
+                            }
+                        }}
+                        disabled={isSigningOut}
+                        aria-busy={isSigningOut}
+                        aria-label="Выйти из аккаунта"
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSigningOut ? (
+                            <>
+                                <Loader2 className="animate-spin" size={16} aria-hidden="true" />
+                                Выход...
+                            </>
+                        ) : (
+                            <>
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                Выйти
+                            </>
+                        )}
+                    </button>
+
                     <ThemeToggle />
-                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium text-center">
+                    <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium text-center mt-1">
                         2026 © SKLAD
                     </div>
                 </div>
             </aside>
 
-            {/* Overlay for Mobile */}
+            {/* Overlay for Mobile - high z-index to catch everything except sidebar */}
             {isMobileMenuOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity cursor-pointer"
                     onClick={() => setIsMobileMenuOpen(false)}
+                    aria-hidden="true"
                 />
             )}
 
             {/* Main Content - Pushed by sidebar using custom CSS class for reliability */}
-            <div className="flex-1 flex flex-col min-w-0 transition-all duration-300 layout-content-shift">
+            <div className="layout-main">
                 <header className="sticky top-0 z-30 flex items-center h-16 px-6 md:px-8 border-b border-gray-200 dark:border-gray-800 header-solid shadow-sm">
                     <div className="w-full flex items-center gap-4">
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg desktop-hidden md:hidden text-black dark:text-white"
+                            aria-expanded={isMobileMenuOpen}
+                            aria-controls="sidebar"
+                            aria-label={isMobileMenuOpen ? 'Закрыть меню' : 'Открыть меню'}
+                            className="p-2 -ml-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg desktop-hidden md:hidden text-black dark:text-white menu-toggle-btn"
                         >
-                            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            {isMobileMenuOpen ? <X size={24} aria-hidden="true" /> : <Menu size={24} aria-hidden="true" />}
                         </button>
 
                         <div className="flex-1">
@@ -164,7 +223,7 @@ const Layout = () => {
                     </div>
                 </header>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 dark:bg-black">
+                <main id="main-content" className="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50 dark:bg-black">
                     <div className="w-full">
                         <Outlet />
                     </div>

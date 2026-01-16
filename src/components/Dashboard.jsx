@@ -1,5 +1,5 @@
 import React from 'react';
-import { Package, Beef, Plus, ArrowRight, Sparkles, TrendingDown } from 'lucide-react';
+import { Package, Beef, Plus, ArrowRight, Sparkles, TrendingDown, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../store/inventoryStore';
 
@@ -13,10 +13,10 @@ const OnboardingCard = ({ step, title, description, linkTo, linkText, icon: Icon
                 <span className="text-blue-600 font-bold">{step}</span>
             </div>
             <div className="flex-1">
-                <h4 className="font-bold m-0 flex items-center gap-2">
-                    <Icon size={18} className="text-blue-600" />
+                <h3 className="font-bold m-0 flex items-center gap-2">
+                    <Icon size={18} className="text-blue-600" aria-hidden="true" />
                     {title}
-                </h4>
+                </h3>
                 <p className="text-sm text-[var(--text-secondary)] mt-1 mb-3">{description}</p>
                 <Link to={linkTo} className="btn btn-primary text-sm inline-flex items-center justify-center gap-2 w-36 tracking-wide">
                     {linkText} <ArrowRight size={16} />
@@ -74,8 +74,8 @@ const Dashboard = () => {
             {showOnboarding && (
                 <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
                     <div className="flex items-center gap-3 mb-4">
-                        <Sparkles className="text-blue-600" size={24} />
-                        <h3 className="font-bold m-0">Добро пожаловать в SKLAD!</h3>
+                        <Sparkles className="text-blue-600" size={24} aria-hidden="true" />
+                        <h2 className="font-bold m-0 text-lg">Добро пожаловать в SKLAD!</h2>
                     </div>
                     <p className="text-[var(--text-secondary)] mb-6">
                         Начните с настройки склада для вашего производства.
@@ -111,20 +111,20 @@ const Dashboard = () => {
             )}
 
             {/* Low Stock Widgets */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* Increased gap */}
                 {/* Low Stock Ingredients */}
-                <div className="card">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold m-0 flex items-center gap-2">
-                            <TrendingDown size={18} className="text-orange-500" />
+                <div className="card border-l-4 border-l-orange-400"> {/* Color accent */}
+                    <div className="flex items-center justify-between mb-6"> {/* More spacing */}
+                        <h2 className="font-bold m-0 flex items-center gap-3 text-lg">
+                            <TrendingDown size={20} className="text-orange-500" aria-hidden="true" />
                             Мало на складе (Сырьё)
-                        </h3>
-                        <Link to="/ingredients" className="text-xs text-blue-600 hover:underline">
+                        </h2>
+                        <Link to="/ingredients" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
                             Все →
                         </Link>
                     </div>
                     {lowIngredients.length > 0 ? (
-                        <div className="space-y-1">
+                        <div className="space-y-3">
                             {lowIngredients.map(ing => (
                                 <LowStockItem
                                     key={ing.id}
@@ -137,25 +137,26 @@ const Dashboard = () => {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-[var(--text-light)] text-center py-6 text-sm">
-                            Нет материалов на складе
-                        </p>
+                        <div className="flex flex-col items-center justify-center py-8 text-green-600 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <CheckCircle size={32} className="mb-2" />
+                            <p className="font-medium">Все материалы в наличии</p>
+                        </div>
                     )}
                 </div>
 
                 {/* Low Stock Products */}
-                <div className="card">
-                    <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-bold m-0 flex items-center gap-2">
-                            <TrendingDown size={18} className="text-orange-500" />
+                <div className="card border-l-4 border-l-orange-400">
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="font-bold m-0 flex items-center gap-3 text-lg">
+                            <TrendingDown size={20} className="text-orange-500" aria-hidden="true" />
                             Мало на складе (Продукция)
-                        </h3>
-                        <Link to="/products" className="text-xs text-blue-600 hover:underline">
+                        </h2>
+                        <Link to="/products" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
                             Все →
                         </Link>
                     </div>
                     {lowProducts.length > 0 ? (
-                        <div className="space-y-1">
+                        <div className="space-y-3">
                             {lowProducts.map(prod => (
                                 <LowStockItem
                                     key={prod.id}
@@ -167,27 +168,38 @@ const Dashboard = () => {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-[var(--text-light)] text-center py-6 text-sm">
-                            {products.length === 0 ? 'Нет продуктов' : 'У продуктов не указан остаток'}
-                        </p>
+                        <div className="flex flex-col items-center justify-center py-8 text-green-600 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                            <CheckCircle size={32} className="mb-2" />
+                            <p className="font-medium">
+                                {products.length === 0 ? 'Нет продуктов' : 'Всё в достаточном количестве'}
+                            </p>
+                        </div>
                     )}
                 </div>
             </div>
 
             {/* Recent Activity */}
             <div className="card">
-                <h3 className="font-bold mb-4 m-0">Последние действия</h3>
+                <h2 className="font-bold mb-6 text-xl">Последние действия</h2>
                 {history.length > 0 ? (
-                    <div className="space-y-3">
+                    <div className="space-y-4"> {/* Increased spacing */}
                         {history.slice(0, 5).map(h => (
-                            <div key={h.id} className="flex items-start gap-3 pb-3 border-b border-[var(--border)] last:border-0">
-                                <div className={`w-2 h-2 mt-2 rounded-full ${h.type === 'Производство' ? 'bg-green-500' :
-                                    h.type === 'Удаление' || h.type === 'Списание' ? 'bg-red-500' : 'bg-blue-500'
+                            <div key={h.id} className="flex items-start gap-4 pb-4 border-b border-[var(--border)] last:border-0 last:pb-0">
+                                <div className={`w-3 h-3 mt-1.5 rounded-full flex-shrink-0 ${h.type === 'Производство' ? 'bg-green-500 shadow-sm shadow-green-200 dark:shadow-none' :
+                                    h.type === 'Удаление' || h.type === 'Списание' ? 'bg-red-500 shadow-sm shadow-red-200 dark:shadow-none' : 'bg-blue-500 shadow-sm shadow-blue-200 dark:shadow-none'
                                     }`} />
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm truncate">{h.description}</p>
-                                    <p className="text-xs text-[var(--text-light)]">
-                                        {new Date(h.date).toLocaleString('ru-RU')}
+                                    <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed">
+                                        {/* Parse description to bold the entity name roughly if possible, otherwise just display */}
+                                        {/* Simple heuristic: bold text between quotes if any, otherwise just text */}
+                                        {h.description.split('"').map((part, i) =>
+                                            i % 2 === 1 ? <span key={i} className="font-bold">{part}</span> : part
+                                        )}
+                                    </p>
+                                    <p className="text-xs font-medium text-gray-400 mt-1">
+                                        {new Date(h.date).toLocaleString('ru-RU', {
+                                            day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
+                                        })}
                                     </p>
                                 </div>
                             </div>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item Card Demo</title>
+    <link rel="stylesheet" href="../src/index.css">
+    <style>
+        body {
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: var(--bg-page);
+        }
+
+        .demo-grid {
+            display: grid;
+            gap: 24px;
+            margin-top: 32px;
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .demo-section {
+            margin-bottom: 48px;
+        }
+
+        .demo-label {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-light);
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Item Card Component</h1>
+    <p style="color: var(--text-secondary); margin-bottom: 32px;">Демонстрация карточек товара с различными состояниями
+    </p>
+
+    <!-- Normal State -->
+    <div class="demo-section">
+        <div class="demo-label">Normal Stock</div>
+        <div class="item-card">
+            <div class="item-card__content">
+                <div class="item-card__info">
+                    <h3 class="item-card__title">Мука пшеничная высший сорт</h3>
+                    <span class="item-card__sku">SKU-2024-001</span>
+                </div>
+                <div class="item-card__quantity">
+                    <div class="item-card__quantity-value">145</div>
+                    <div class="item-card__quantity-unit">кг</div>
+                </div>
+            </div>
+
+            <div class="item-card__actions">
+                <button class="item-card__btn item-card__btn--minus">
+                    <span class="item-card__btn-icon">−</span>
+                    <span>Минус</span>
+                </button>
+                <button class="item-card__btn item-card__btn--plus">
+                    <span class="item-card__btn-icon">+</span>
+                    <span>Плюс</span>
+                </button>
+                <button class="item-card__btn item-card__btn--edit">
+                    <span class="item-card__btn-icon">✎</span>
+                    <span>Редактировать</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Low Stock State -->
+    <div class="demo-section">
+        <div class="demo-label">Low Stock Warning</div>
+        <div class="item-card low-stock">
+            <div class="item-card__content">
+                <div class="item-card__info">
+                    <h3 class="item-card__title">Сахар-песок</h3>
+                    <span class="item-card__sku">SKU-2024-015</span>
+                </div>
+                <div class="item-card__quantity">
+                    <div class="item-card__quantity-value">8</div>
+                    <div class="item-card__quantity-unit">кг</div>
+                </div>
+            </div>
+
+            <div class="item-card__actions">
+                <button class="item-card__btn item-card__btn--minus">
+                    <span class="item-card__btn-icon">−</span>
+                    <span>Минус</span>
+                </button>
+                <button class="item-card__btn item-card__btn--plus">
+                    <span class="item-card__btn-icon">+</span>
+                    <span>Плюс</span>
+                </button>
+                <button class="item-card__btn item-card__btn--edit">
+                    <span class="item-card__btn-icon">✎</span>
+                    <span>Редактировать</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Out of Stock State -->
+    <div class="demo-section">
+        <div class="demo-label">Out of Stock</div>
+        <div class="item-card out-of-stock">
+            <div class="item-card__content">
+                <div class="item-card__info">
+                    <h3 class="item-card__title">Какао-порошок натуральный</h3>
+                    <span class="item-card__sku">SKU-2024-032</span>
+                </div>
+                <div class="item-card__quantity">
+                    <div class="item-card__quantity-value">0</div>
+                    <div class="item-card__quantity-unit">кг</div>
+                </div>
+            </div>
+
+            <div class="item-card__actions">
+                <button class="item-card__btn item-card__btn--minus" disabled
+                    style="opacity: 0.5; cursor: not-allowed;">
+                    <span class="item-card__btn-icon">−</span>
+                    <span>Минус</span>
+                </button>
+                <button class="item-card__btn item-card__btn--plus">
+                    <span class="item-card__btn-icon">+</span>
+                    <span>Плюс</span>
+                </button>
+                <button class="item-card__btn item-card__btn--edit">
+                    <span class="item-card__btn-icon">✎</span>
+                    <span>Редактировать</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compact Example with Long Name -->
+    <div class="demo-section">
+        <div class="demo-label">Long Title (Text Truncation)</div>
+        <div class="item-card" style="max-width: 400px;">
+            <div class="item-card__content">
+                <div class="item-card__info">
+                    <h3 class="item-card__title">Масло сливочное крестьянское несоленое ГОСТ 82.5%</h3>
+                    <span class="item-card__sku">SKU-2024-999</span>
+                </div>
+                <div class="item-card__quantity">
+                    <div class="item-card__quantity-value">24</div>
+                    <div class="item-card__quantity-unit">кг</div>
+                </div>
+            </div>
+
+            <div class="item-card__actions">
+                <button class="item-card__btn item-card__btn--minus">
+                    <span class="item-card__btn-icon">−</span>
+                </button>
+                <button class="item-card__btn item-card__btn--plus">
+                    <span class="item-card__btn-icon">+</span>
+                </button>
+                <button class="item-card__btn item-card__btn--edit">
+                    <span class="item-card__btn-icon">✎</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Demo interactions
+        document.querySelectorAll('.item-card__btn--minus').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.item-card');
+                const valueEl = card.querySelector('.item-card__quantity-value');
+                const currentValue = parseInt(valueEl.textContent);
+                if (currentValue > 0) {
+                    valueEl.textContent = currentValue - 1;
+
+                    // Update status
+                    card.classList.remove('low-stock', 'out-of-stock');
+                    if (currentValue - 1 === 0) {
+                        card.classList.add('out-of-stock');
+                    } else if (currentValue - 1 <= 10) {
+                        card.classList.add('low-stock');
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.item-card__btn--plus').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.item-card');
+                const valueEl = card.querySelector('.item-card__quantity-value');
+                const currentValue = parseInt(valueEl.textContent);
+                valueEl.textContent = currentValue + 1;
+
+                // Update status
+                if (currentValue + 1 > 10) {
+                    card.classList.remove('low-stock', 'out-of-stock');
+                }
+            });
+        });
+
+        document.querySelectorAll('.item-card__btn--edit').forEach(btn => {
+            btn.addEventListener('click', () => {
+                alert('Open edit modal');
+            });
+        });
+    </script>
+</body>
+
+</html>

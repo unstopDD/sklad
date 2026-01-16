@@ -42,7 +42,7 @@ const ProductionManager = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleProduce = () => {
+    const handleProduce = async () => {
         if (!validate()) return;
 
         if (!can) {
@@ -50,7 +50,7 @@ const ProductionManager = () => {
             return;
         }
 
-        const result = produceProduct(selectedProduct, quantity);
+        const result = await produceProduct(selectedProduct, quantity);
         if (result.success) {
             addToast(`Произведено ${quantity} ${product.unit} "${product.name}"`, 'success');
             setQuantity(1);
@@ -62,107 +62,172 @@ const ProductionManager = () => {
 
     return (
         <div className="">
-            <p className="text-[var(--text-secondary)] text-sm mb-6">
-                Запишите производство и автоматически спишите сырьё со склада.
-            </p>
-
-            <div className="card max-w-md">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Factory size={20} className="text-blue-600" />
+            {/* Header */}
+            <div className="mb-8">
+                <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2 mb-2">
+                    <Factory className="text-[var(--primary)]" size={24} />
                     Регистрация производства
-                </h3>
-
-                <div className="space-y-4">
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Продукт</label>
-                        <select
-                            className={`input ${errors.selectedProduct ? 'input-error' : ''}`}
-                            value={selectedProduct}
-                            onChange={e => {
-                                setSelectedProduct(e.target.value);
-                                if (errors.selectedProduct) setErrors({ ...errors, selectedProduct: null });
-                            }}
-                        >
-                            <option value="">Выберите продукт...</option>
-                            {products.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
-                        {errors.selectedProduct && <p className="error-message">{errors.selectedProduct}</p>}
-                    </div>
-
-                    <div className="space-y-1">
-                        <label className="text-sm font-medium">Количество</label>
-                        <input
-                            type="number"
-                            className={`input font-mono ${errors.quantity ? 'input-error' : ''}`}
-                            value={quantity}
-                            onChange={e => {
-                                setQuantity(Math.max(1, Number(e.target.value)));
-                                if (errors.quantity) setErrors({ ...errors, quantity: null });
-                            }}
-                            min={1}
-                        />
-                        {errors.quantity && <p className="error-message">{errors.quantity}</p>}
-                    </div>
-
-                    {/* Recipe Preview */}
-                    {product && product.recipe?.length > 0 && (
-                        <div className="bg-[var(--bg-page)] rounded-lg p-4 mt-4">
-                            <p className="text-sm font-medium mb-3">
-                                Будет списано:
-                            </p>
-                            <div className="space-y-2">
-                                {product.recipe.map((item, idx) => {
-                                    const required = item.amount * quantity;
-                                    const available = getIngredientStock(item.ingredientId);
-                                    const isEnough = available >= required;
-
-                                    return (
-                                        <div key={idx} className="flex items-center justify-between">
-                                            <span className="text-sm">{getIngredientName(item.ingredientId)}</span>
-                                            <div className="flex items-center gap-2">
-                                                <span className={`font-mono text-sm ${isEnough ? 'text-green-600' : 'text-red-600'}`}>
-                                                    {required} / {available}
-                                                </span>
-                                                {isEnough ? (
-                                                    <Check size={14} className="text-green-500" />
-                                                ) : (
-                                                    <AlertCircle size={14} className="text-red-500" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Error message */}
-                    {!can && missing.length > 0 && (
-                        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
-                            <AlertCircle size={16} />
-                            <span>Не хватает сырья для производства</span>
-                        </div>
-                    )}
-
-                    <div style={{ marginTop: '2rem' }}>
-                        <button
-                            onClick={handleProduce}
-                            disabled={!selectedProduct || !can || quantity <= 0}
-                            className="btn btn-primary w-full justify-center"
-                        >
-                            <Factory size={18} />
-                            Зафиксировать производство
-                        </button>
-                    </div>
-                </div>
+                </h2>
+                <p className="text-[var(--text-secondary)] text-sm max-w-2xl">
+                    Выберите продукт для производства. Ингредиенты будут автоматически списаны со склада, а готовая продукция добавлена на баланс.
+                </p>
             </div>
 
-            {products.length === 0 && (
-                <div className="card mt-6 text-center py-12 text-[var(--text-light)]">
-                    <Factory size={48} className="mx-auto mb-4 opacity-30" />
-                    <p>Сначала создайте продукты с рецептами</p>
+            {products.length === 0 ? (
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
+                    <Factory size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
+                    <p className="font-medium text-[var(--text-secondary)]">Нет доступных продуктов</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">Создайте хотя бы один продукт с рецептом</p>
+                </div>
+            ) : (
+                <div className="grid lg:grid-cols-2 gap-8 items-start">
+                    {/* Left Column: Input Form */}
+                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] shadow-sm p-6 space-y-6">
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="prod-select" className="block text-sm font-semibold text-[var(--text-main)] mb-2">ПРОДУКТ</label>
+                                <div className="relative">
+                                    <select
+                                        id="prod-select"
+                                        className={`input appearance-none bg-[var(--bg-page)] ${errors.selectedProduct ? 'input-error' : ''}`}
+                                        value={selectedProduct}
+                                        onChange={e => {
+                                            setSelectedProduct(e.target.value);
+                                            if (errors.selectedProduct) setErrors({ ...errors, selectedProduct: null });
+                                        }}
+                                    >
+                                        <option value="">Выберите продукт...</option>
+                                        {products.map(p => (
+                                            <option key={p.id} value={p.id}>{p.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--text-secondary)]">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                                    </div>
+                                </div>
+                                {errors.selectedProduct && <p className="error-message mt-2">{errors.selectedProduct}</p>}
+                            </div>
+
+                            <div>
+                                <label htmlFor="prod-qty" className="block text-sm font-semibold text-[var(--text-main)] mb-2">КОЛИЧЕСТВО</label>
+                                <div className="flex gap-4">
+                                    <div className="flex-1 relative">
+                                        <input
+                                            id="prod-qty"
+                                            type="number"
+                                            className={`input font-mono text-lg ${errors.quantity ? 'input-error' : ''}`}
+                                            value={quantity}
+                                            onChange={e => {
+                                                setQuantity(Math.max(1, Number(e.target.value)));
+                                                if (errors.quantity) setErrors({ ...errors, quantity: null });
+                                            }}
+                                            min={1}
+                                        />
+                                    </div>
+                                    <div className="w-24 h-[46px] flex items-center justify-center bg-[var(--bg-page)] rounded-xl border border-[var(--border)] text-[var(--text-secondary)] font-medium">
+                                        {product?.unit || 'ед.'}
+                                    </div>
+                                </div>
+                                {errors.quantity && <p className="error-message mt-2">{errors.quantity}</p>}
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                            <button
+                                onClick={handleProduce}
+                                disabled={!selectedProduct || !can || quantity <= 0}
+                                className={`
+                                    btn w-full justify-center py-4 text-base shadow-lg transition-all
+                                    ${!selectedProduct || !can || quantity <= 0
+                                        ? 'bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-600 cursor-not-allowed shadow-none'
+                                        : 'btn-primary shadow-blue-500/20 hover:shadow-blue-500/30 hover:-translate-y-0.5'
+                                    }
+                                `}
+                            >
+                                <Factory size={20} />
+                                <span>Зафиксировать производство</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Right Column: Preview & Status */}
+                    <div className="space-y-6">
+                        {/* Status Card */}
+                        {product ? (
+                            <div className={`bg-[var(--bg-card)] border rounded-[var(--radius)] shadow-sm overflow-hidden transition-colors ${can ? 'border-green-200 dark:border-green-900/30' : 'border-red-200 dark:border-red-900/30'}`}>
+                                <div className={`px-6 py-4 border-b ${can ? 'bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30' : 'bg-red-50 dark:bg-red-900/10 border-red-100 dark:border-red-900/30'}`}>
+                                    <div className="flex items-center gap-3">
+                                        {can ? (
+                                            <div className="w-10 h-10 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400 flex items-center justify-center shadow-sm">
+                                                <Check size={20} />
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 flex items-center justify-center shadow-sm">
+                                                <AlertCircle size={20} />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h3 className={`font-bold ${can ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                                {can ? 'Производство возможно' : 'Недостаточно сырья'}
+                                            </h3>
+                                            <p className="text-xs opacity-80 text-[var(--text-secondary)]">Проверка складских остатков</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-6">
+                                    {product.recipe?.length > 0 ? (
+                                        <>
+                                            <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-4">
+                                                Списание со склада ({product.recipe.length} поз.)
+                                            </h4>
+                                            <div className="space-y-3">
+                                                {product.recipe.map((item, idx) => {
+                                                    const required = item.amount * quantity;
+                                                    const available = getIngredientStock(item.ingredientId);
+                                                    const isEnough = available >= required;
+
+                                                    return (
+                                                        <div key={idx} className="flex items-center justify-between group">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-1.5 h-1.5 rounded-full ${isEnough ? 'bg-gray-300' : 'bg-red-500'}`} />
+                                                                <span className={`text-sm ${!isEnough ? 'font-medium text-red-600 dark:text-red-400' : 'text-[var(--text-main)]'}`}>
+                                                                    {getIngredientName(item.ingredientId)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="text-right">
+                                                                    <div className={`font-mono font-medium ${isEnough ? 'text-[var(--text-main)]' : 'text-red-600 dark:text-red-400'}`}>
+                                                                        -{required}
+                                                                    </div>
+                                                                    <div className="text-[10px] text-[var(--text-secondary)]">
+                                                                        дост: {available}
+                                                                    </div>
+                                                                </div>
+                                                                <span className="text-xs text-[var(--text-secondary)] w-6">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center py-6 text-[var(--text-secondary)] bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-[var(--border)]">
+                                            У этого продукта нет рецепта
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="bg-[var(--bg-page)] rounded-[var(--radius)] border border-dashed border-[var(--border)] p-8 text-center h-full flex flex-col items-center justify-center min-h-[300px]">
+                                <Factory size={48} className="text-[var(--text-light)] opacity-20 mb-4" />
+                                <p className="text-[var(--text-secondary)] font-medium">Выберите продукт</p>
+                                <p className="text-sm text-[var(--text-light)] max-w-xs mx-auto mt-2">
+                                    Справа отобразится расчет необходимых ингредиентов и статус доступности
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

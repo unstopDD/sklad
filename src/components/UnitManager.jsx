@@ -38,12 +38,14 @@ const UnitManager = () => {
             </p>
 
             {/* Add Form */}
-            <div className="card">
-                <h3 className="text-lg font-medium mb-4">Добавить новую единицу</h3>
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] p-6 max-w-lg shadow-sm">
+                <h3 className="text-lg font-bold text-[var(--text-main)] mb-4 flex items-center gap-2">
+                    <Scale size={20} className="text-[var(--primary)]" />
+                    Добавить новую единицу
+                </h3>
                 <form onSubmit={handleSubmit} className="flex gap-4 items-start" noValidate>
-                    <div className="relative flex-1 max-w-sm">
+                    <div className="relative flex-1">
                         <div className="relative">
-                            <Scale className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-light)]" size={18} />
                             <input
                                 type="text"
                                 value={newUnit}
@@ -52,10 +54,10 @@ const UnitManager = () => {
                                     if (error) setError('');
                                 }}
                                 placeholder="Например: шт, кг, литр..."
-                                className={`input pl-10 ${error ? 'input-error' : ''}`}
+                                className={`input w-full ${error ? 'input-error' : ''}`}
                             />
                         </div>
-                        {error && <p className="error-message">{error}</p>}
+                        {error && <p className="error-message mt-1">{error}</p>}
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={!newUnit.trim()}>
                         <Plus size={18} /> Добавить
@@ -64,19 +66,20 @@ const UnitManager = () => {
             </div>
 
             {/* Units Grid */}
-            <div>
-                <h3 className="text-lg font-medium mb-4">Доступные единицы ({units.length})</h3>
+            <div className="space-y-4">
+                <h3 className="text-lg font-medium text-[var(--text-main)]">Доступные единицы ({units.length})</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
                     {units.map((unit) => (
                         <div
                             key={unit}
-                            className="card p-4 flex items-center justify-between group hover:border-[var(--primary)] transition-colors"
+                            className="group flex items-center justify-between bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] p-4 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-md transition-all duration-200"
                         >
-                            <span className="font-medium text-lg">{unit}</span>
+                            <span className="font-mono font-medium text-lg text-[var(--text-main)]">{unit}</span>
                             <button
                                 onClick={() => handleRemove(unit)}
-                                className="btn-icon danger opacity-0 group-hover:opacity-100"
-                                title="Удалить"
+                                className="h-8 w-8 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                                title={`Удалить ${unit}`}
+                                aria-label={`Удалить единицу измерения ${unit}`}
                             >
                                 <X size={18} />
                             </button>
@@ -85,7 +88,7 @@ const UnitManager = () => {
                 </div>
 
                 {units.length === 0 && (
-                    <div className="text-center py-12 card border-dashed">
+                    <div className="text-center py-12 bg-[var(--bg-card)] border border-dashed border-[var(--border)] rounded-[var(--radius)]">
                         <div className="flex flex-col items-center text-[var(--text-light)]">
                             <Scale size={48} className="mb-4 opacity-30" />
                             <p className="font-medium text-[var(--text-secondary)]">Список пуст</p>

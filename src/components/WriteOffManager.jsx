@@ -3,7 +3,7 @@ import { Trash2, Package, Beef, AlertCircle, Check } from 'lucide-react';
 import { useInventoryStore } from '../store/inventoryStore';
 
 const WriteOffManager = () => {
-    const { ingredients, products, addToast, logAction } = useInventoryStore();
+    const { ingredients, products, addToast, logAction, updateIngredientQuantity, updateProductQuantity } = useInventoryStore();
     const [type, setType] = useState('ingredient'); // 'ingredient' or 'product'
     const [selectedId, setSelectedId] = useState('');
     const [quantity, setQuantity] = useState(1);
@@ -22,28 +22,26 @@ const WriteOffManager = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleWriteOff = () => {
+    const handleWriteOff = async () => {
         if (!validate()) return;
 
         const item = items.find(i => i.id === selectedId);
         if (!item) return;
 
-        if (item.quantity < quantity) {
+        if ((item.quantity || 0) < quantity) {
             addToast('Недостаточно для списания', 'error');
             return;
         }
 
-        // Update quantity
-        useInventoryStore.setState(state => ({
-            [type === 'ingredient' ? 'ingredients' : 'products']:
-                state[type === 'ingredient' ? 'ingredients' : 'products'].map(i =>
-                    i.id === selectedId
-                        ? { ...i, quantity: i.quantity - quantity }
-                        : i
-                )
-        }));
+        const newQty = (item.quantity || 0) - quantity;
 
-        logAction('Списание', `Списано ${quantity} ${item.unit || 'шт'} "${item.name}"${reason ? ` (${reason})` : ''}`);
+        if (type === 'ingredient') {
+            await updateIngredientQuantity(selectedId, newQty);
+        } else {
+            await updateProductQuantity(selectedId, newQty);
+        }
+
+        await logAction('Списание', `Списано ${quantity} ${item.unit || 'шт'} "${item.name}"${reason ? ` (${reason})` : ''}`);
         addToast(`Списано: ${item.name}`, 'success');
 
         setQuantity(1);

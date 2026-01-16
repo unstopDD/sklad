@@ -33,14 +33,14 @@ const IngredientManager = () => {
         setIsSlideOpen(true);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
         if (!validate()) {
             return;
         }
 
-        const result = addIngredient({
+        const result = await addIngredient({
             ...formData,
             name: formData.name.trim(),
             quantity: Number(formData.quantity) || 0,
@@ -85,140 +85,102 @@ const IngredientManager = () => {
             </div>
 
             {/* Search */}
-            <div className="card mb-4">
-                <div className="flex items-center gap-4">
-                    <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-light)]" size={18} />
-                        <input
-                            className="input pl-10"
-                            placeholder="Поиск по названию..."
-                            value={filter}
-                            onChange={e => setFilter(e.target.value)}
-                        />
-                    </div>
+            <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-sm p-2 mb-6">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-light)]" size={18} aria-hidden="true" />
+                    <input
+                        id="ingredient-search"
+                        className="w-full pl-10 pr-4 py-2.5 bg-transparent text-[var(--text-main)] placeholder-[var(--text-light)] focus:outline-none"
+                        placeholder="Поиск по названию..."
+                        value={filter}
+                        onChange={e => setFilter(e.target.value)}
+                        aria-label="Поиск материалов"
+                    />
                 </div>
             </div>
 
-            {/* Desktop Table */}
-            <div className="card p-0 desktop-table">
-                <div className="table-container">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Название</th>
-                                <th>Ед. изм.</th>
-                                <th className="text-right">Остаток</th>
-                                <th className="text-right">Мин.</th>
-                                <th style={{ textAlign: 'center' }} className="w-[120px] p-2">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {filtered.map(ing => {
-                                const status = getStockStatus(ing);
-                                return (
-                                    <tr key={ing.id}>
-                                        <td className="font-medium">{ing.name}</td>
-                                        <td>
-                                            <span className="badge badge-success">{ing.unit}</span>
-                                        </td>
-                                        <td className="text-right">
-                                            {editingQty === ing.id ? (
-                                                <input
-                                                    type="number"
-                                                    className="inline-edit"
-                                                    defaultValue={ing.quantity}
-                                                    autoFocus
-                                                    onBlur={(e) => handleInlineEdit(ing.id, e.target.value)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === 'Enter') handleInlineEdit(ing.id, e.target.value);
-                                                        if (e.key === 'Escape') setEditingQty(null);
-                                                    }}
-                                                />
-                                            ) : (
-                                                <span
-                                                    className={`font-mono cursor-pointer badge badge-${status}`}
-                                                    onClick={() => setEditingQty(ing.id)}
-                                                    title="Кликните для редактирования"
-                                                >
-                                                    {ing.quantity}
-                                                    {status !== 'success' && <AlertCircle size={12} />}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="text-right font-mono text-[var(--text-secondary)]">
-                                            {ing.minStock || '-'}
-                                        </td>
-                                        <td className="text-center w-[120px] p-2">
-                                            <div className="flex items-center justify-center gap-1">
-                                                <button
-                                                    onClick={() => openSlide(ing)}
-                                                    className="btn-icon"
-                                                    title="Редактировать"
-                                                >
-                                                    <Edit2 size={16} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDelete(ing.id)}
-                                                    className="btn-icon danger"
-                                                    title="Удалить"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {filtered.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="py-12 text-center">
-                                        <div className="flex flex-col items-center justify-center text-[var(--text-light)]">
-                                            <Search size={48} className="mb-4 opacity-30" />
-                                            <p className="font-medium text-[var(--text-secondary)]">Склад пуст</p>
-                                            <p className="text-sm">Добавьте материалы, из которых будете производить продукцию.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Mobile Card View */}
-            <div className="mobile-cards">
+            {/* Item Cards Grid */}
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filtered.map(ing => {
                     const status = getStockStatus(ing);
+                    // Mapping legacy status to Tailwind colors
+                    const statusColors = {
+                        danger: 'border-red-500/50 bg-red-50/50 dark:bg-red-900/10',
+                        warning: 'border-orange-500/50 bg-orange-50/50 dark:bg-orange-900/10',
+                        success: 'border-[var(--border)] bg-[var(--bg-card)]'
+                    };
+                    const borderColor = statusColors[status] || statusColors.success;
+
                     return (
-                        <div key={ing.id} className="mobile-card">
-                            <div className="mobile-card-header">
-                                <span className="mobile-card-name">{ing.name}</span>
-                                <span className={`badge badge-${status}`}>
-                                    {ing.quantity} {ing.unit}
-                                    {status !== 'success' && <AlertCircle size={12} />}
-                                </span>
+                        <div key={ing.id} className={`group relative flex flex-col gap-4 border rounded-[var(--radius)] p-5 shadow-sm hover:shadow-md transition-all duration-200 ${borderColor}`}>
+                            <div className="flex justify-between items-start gap-4">
+                                <div className="flex flex-col gap-1 min-w-0">
+                                    <h3 className="text-lg font-bold text-[var(--text-main)] leading-tight truncate" title={ing.name}>{ing.name}</h3>
+                                    <span className="text-[13px] font-mono text-[var(--text-light)]">
+                                        Мин: {ing.minStock || 0} {ing.unit}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                    <div className={`text-2xl font-extrabold font-mono leading-none ${status === 'danger' ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
+                                        {ing.quantity}
+                                    </div>
+                                    <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">{ing.unit}</div>
+                                </div>
                             </div>
-                            <div className="mobile-card-meta">
-                                <span>Мин: {ing.minStock || '-'}</span>
-                            </div>
-                            <div className="mobile-card-actions">
-                                <button onClick={() => openSlide(ing)} className="btn btn-secondary flex-1">
-                                    <Edit2 size={16} /> Изменить
+
+                            <div className="flex gap-2 pt-3 border-t border-[var(--border)] mt-auto">
+                                <button
+                                    className="h-10 w-10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] rounded-lg transition-all"
+                                    onClick={() => {
+                                        if (ing.quantity > 0) {
+                                            updateIngredientQuantity(ing.id, ing.quantity - 1);
+                                            addToast(`−1 ${ing.unit}`, 'info');
+                                        }
+                                    }}
+                                    disabled={ing.quantity <= 0}
+                                    aria-label={`Уменьшить количество ${ing.name}`}
+                                >
+                                    <span className="text-xl font-medium" aria-hidden="true">−</span>
                                 </button>
-                                <button onClick={() => handleDelete(ing.id)} className="btn btn-secondary">
-                                    <Trash2 size={16} />
+                                <button
+                                    className="h-10 w-10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] rounded-lg transition-all"
+                                    onClick={() => {
+                                        updateIngredientQuantity(ing.id, ing.quantity + 1);
+                                        addToast(`+1 ${ing.unit}`, 'info');
+                                    }}
+                                    aria-label={`Увеличить количество ${ing.name}`}
+                                >
+                                    <span className="text-xl font-medium" aria-hidden="true">+</span>
+                                </button>
+                                <div className="flex-1"></div>
+                                <button
+                                    className="h-10 w-10 flex items-center justify-center text-[var(--primary)] hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 rounded-lg transition-all"
+                                    onClick={() => openSlide(ing)}
+                                    aria-label={`Редактировать ${ing.name}`}
+                                >
+                                    <Edit2 size={16} aria-hidden="true" />
+                                </button>
+                                <button
+                                    className="h-10 w-10 flex items-center justify-center text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-900/20 border border-transparent hover:border-red-200 dark:hover:border-red-800 rounded-lg transition-all"
+                                    onClick={() => handleDelete(ing.id)}
+                                    aria-label={`Удалить ${ing.name}`}
+                                >
+                                    <Trash2 size={16} aria-hidden="true" />
                                 </button>
                             </div>
                         </div>
                     );
                 })}
-                {filtered.length === 0 && (
-                    <div className="text-center py-12 text-[var(--text-light)]">
-                        <Search size={48} className="mx-auto mb-4 opacity-30" />
-                        <p>Склад пуст</p>
-                    </div>
-                )}
             </div>
+
+            {/* Empty State */}
+            {filtered.length === 0 && (
+                <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
+                    <Search size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
+                    <p className="font-medium text-[var(--text-secondary)]">Склад пуст</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">Добавьте материалы, из которых будете производить продукцию.</p>
+                </div>
+            )}
 
             {/* SlideOver Form */}
             <SlideOver
@@ -228,8 +190,9 @@ const IngredientManager = () => {
             >
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                     <div>
-                        <label className="block text-sm font-medium mb-2.5">Название</label>
+                        <label htmlFor="ingredient-name" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Название</label>
                         <input
+                            id="ingredient-name"
                             className={`input ${errors.name ? 'input-error' : ''}`}
                             placeholder="Например: Материал А, Компонент Б..."
                             value={formData.name}
@@ -239,15 +202,18 @@ const IngredientManager = () => {
                             }}
                             required
                             autoFocus
+                            aria-describedby={errors.name ? 'ingredient-name-error' : undefined}
+                            aria-invalid={!!errors.name}
                         />
-                        {errors.name && <p className="error-message">{errors.name}</p>}
+                        {errors.name && <p id="ingredient-name-error" className="error-message mt-1" role="alert">{errors.name}</p>}
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium mb-2.5">Ед. измерения</label>
+                            <label htmlFor="ingredient-unit" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Ед. измерения</label>
                             <select
-                                className="input"
+                                id="ingredient-unit"
+                                className="input appearance-none bg-[var(--bg-card)]"
                                 value={formData.unit}
                                 onChange={e => setFormData({ ...formData, unit: e.target.value })}
                             >
@@ -255,24 +221,28 @@ const IngredientManager = () => {
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium mb-2.5">Мин. остаток</label>
+                            <label htmlFor="ingredient-minstock" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Мин. остаток</label>
                             <input
                                 type="number"
+                                id="ingredient-minstock"
                                 className={`input font-mono ${errors.minStock ? 'input-error' : ''}`}
                                 value={formData.minStock}
                                 onChange={e => {
                                     setFormData({ ...formData, minStock: e.target.value });
                                     if (errors.minStock) setErrors({ ...errors, minStock: null });
                                 }}
+                                aria-describedby={errors.minStock ? 'ingredient-minstock-error' : undefined}
+                                aria-invalid={!!errors.minStock}
                             />
-                            {errors.minStock && <p className="error-message">{errors.minStock}</p>}
+                            {errors.minStock && <p id="ingredient-minstock-error" className="error-message mt-1" role="alert">{errors.minStock}</p>}
                         </div>
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium mb-2.5">Текущий остаток</label>
+                        <label htmlFor="ingredient-quantity" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Текущий остаток</label>
                         <input
                             type="number"
+                            id="ingredient-quantity"
                             className={`input font-mono ${errors.quantity ? 'input-error' : ''}`}
                             value={formData.quantity}
                             onChange={e => {
@@ -281,18 +251,20 @@ const IngredientManager = () => {
                             }}
                             placeholder="0"
                             required
+                            aria-describedby={errors.quantity ? 'ingredient-quantity-error' : 'ingredient-quantity-hint'}
+                            aria-invalid={!!errors.quantity}
                         />
-                        {errors.quantity && <p className="error-message">{errors.quantity}</p>}
-                        <p className="text-xs text-[var(--text-light)] mt-1">
+                        {errors.quantity && <p id="ingredient-quantity-error" className="error-message mt-1" role="alert">{errors.quantity}</p>}
+                        <p id="ingredient-quantity-hint" className="text-xs text-[var(--text-light)] mt-2">
                             Используйте для начального ввода или инвентаризации.
                         </p>
                     </div>
 
-                    <div className="flex gap-3 pt-6 border-t border-[var(--border)]" style={{ marginTop: '3rem' }}>
-                        <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1">
+                    <div className="flex gap-3 pt-6 mt-8 border-t border-[var(--border)] sticky bottom-0 bg-[var(--bg-card)] z-10">
+                        <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1 h-12 text-base">
                             Отмена
                         </button>
-                        <button type="submit" className="btn btn-primary flex-1">
+                        <button type="submit" className="btn btn-primary flex-1 h-12 text-base shadow-lg shadow-blue-500/20">
                             Сохранить
                         </button>
                     </div>
