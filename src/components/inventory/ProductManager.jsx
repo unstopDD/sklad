@@ -16,6 +16,7 @@ const ProductManager = () => {
     const [recipeItem, setRecipeItem] = useState({ ingredientId: '', amount: '' });
     const [errors, setErrors] = useState({});
     const [isAddingRecipeItem, setIsAddingRecipeItem] = useState(false);
+    const [editingRecipeIndex, setEditingRecipeIndex] = useState(null);
 
     const openSlide = (product = null) => {
         if (product) {
@@ -289,17 +290,49 @@ const ProductManager = () => {
                                                     <button
                                                         type="button"
                                                         onClick={() => updateRecipeItemAmount(idx, -1)}
-                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:border-[var(--text-light)] transition-all active:scale-95"
+                                                        tabIndex="-1"
                                                     >
                                                         -
                                                     </button>
-                                                    <div className="font-mono text-sm text-[var(--text-main)] min-w-[3rem] text-center">
-                                                        {item.amount} <span className="text-[var(--text-secondary)] text-xs">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
-                                                    </div>
+
+                                                    {editingRecipeIndex === idx ? (
+                                                        <input
+                                                            type="number"
+                                                            className="w-16 h-8 text-center font-mono text-sm bg-[var(--bg-card)] border border-[var(--primary)] rounded-md focus:outline-none focus:ring-2 focus:ring-[var(--primary-light)]"
+                                                            defaultValue={item.amount}
+                                                            autoFocus
+                                                            onBlur={(e) => {
+                                                                const val = Number(e.target.value);
+                                                                if (val > 0) {
+                                                                    const newRecipe = [...formData.recipe];
+                                                                    newRecipe[idx].amount = val;
+                                                                    setFormData({ ...formData, recipe: newRecipe });
+                                                                }
+                                                                setEditingRecipeIndex(null);
+                                                            }}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    e.preventDefault();
+                                                                    e.currentTarget.blur();
+                                                                }
+                                                            }}
+                                                        />
+                                                    ) : (
+                                                        <div
+                                                            onClick={() => setEditingRecipeIndex(idx)}
+                                                            className="flex-1 h-8 flex items-center justify-center font-mono text-lg font-bold text-[var(--text-main)] cursor-pointer hover:bg-[var(--bg-card)] hover:text-[var(--primary)] rounded transition-colors select-none"
+                                                            title="Нажмите, чтобы изменить количество"
+                                                        >
+                                                            {item.amount} <span className="text-[var(--text-secondary)] text-xs ml-1 font-normal">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                        </div>
+                                                    )}
+
                                                     <button
                                                         type="button"
                                                         onClick={() => updateRecipeItemAmount(idx, 1)}
-                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:border-[var(--text-light)] transition-all active:scale-95"
+                                                        tabIndex="-1"
                                                     >
                                                         +
                                                     </button>
