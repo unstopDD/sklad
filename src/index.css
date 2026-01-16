@@ -563,6 +563,12 @@ tr:hover td {
     font-variant-numeric: tabular-nums;
 }
 
+/* Sidebar */
+.sidebar-solid {
+    background-color: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+}
+
 /* Layout Shift */
 .layout-main {
     flex: 1;
