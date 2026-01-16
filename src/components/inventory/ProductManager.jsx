@@ -31,6 +31,16 @@ const ProductManager = () => {
 
     const addRecipeItem = () => {
         if (recipeItem.ingredientId && recipeItem.amount) {
+            // Check for duplicates
+            const isDuplicate = formData.recipe.some(
+                item => item.ingredientId === recipeItem.ingredientId
+            );
+
+            if (isDuplicate) {
+                addToast('Этот ингредиент уже есть в рецепте', 'warning');
+                return;
+            }
+
             setFormData({
                 ...formData,
                 recipe: [...formData.recipe, { ...recipeItem, amount: Number(recipeItem.amount) }]
@@ -38,6 +48,19 @@ const ProductManager = () => {
             setRecipeItem({ ingredientId: '', amount: '' });
             setIsAddingRecipeItem(false);
         }
+    };
+
+    const updateRecipeItemAmount = (index, delta) => {
+        const newRecipe = [...formData.recipe];
+        const currentAmount = newRecipe[index].amount;
+        const newAmount = Math.max(0, Number((currentAmount + delta).toFixed(3)));
+
+        if (newAmount === 0) {
+            // Optional: confirm deletion or just set to 0? Let's just set to 0 for now
+        }
+
+        newRecipe[index].amount = newAmount;
+        setFormData({ ...formData, recipe: newRecipe });
     };
 
     const removeRecipeItem = (index) => {
@@ -259,11 +282,27 @@ const ProductManager = () => {
                                     {formData.recipe.map((item, idx) => (
                                         <div key={idx} className="group flex items-center gap-2 bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] p-2.5 rounded-xl transition-all">
                                             <div className="grid grid-cols-12 gap-3 flex-1 items-center">
-                                                <div className="col-span-6 text-sm font-medium text-[var(--text-main)] truncate" title={getIngredientName(item.ingredientId)}>
+                                                <div className="col-span-4 text-sm font-medium text-[var(--text-main)] truncate" title={getIngredientName(item.ingredientId)}>
                                                     {getIngredientName(item.ingredientId)}
                                                 </div>
-                                                <div className="col-span-3 font-mono text-sm text-[var(--text-main)]">
-                                                    {item.amount} <span className="text-[var(--text-secondary)] text-xs">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                <div className="col-span-5 flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateRecipeItemAmount(idx, -1)}
+                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+                                                    >
+                                                        -
+                                                    </button>
+                                                    <div className="font-mono text-sm text-[var(--text-main)] min-w-[3rem] text-center">
+                                                        {item.amount} <span className="text-[var(--text-secondary)] text-xs">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => updateRecipeItemAmount(idx, 1)}
+                                                        className="w-6 h-6 flex items-center justify-center rounded-md bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-main)] transition-colors"
+                                                    >
+                                                        +
+                                                    </button>
                                                 </div>
                                                 <div className="col-span-3 flex justify-end">
                                                     <button
@@ -308,11 +347,13 @@ const ProductManager = () => {
                                                 autoFocus
                                             >
                                                 <option value="">Не выбрано...</option>
-                                                {ingredients.map(ing => (
-                                                    <option key={ing.id} value={ing.id}>
-                                                        {ing.name} ({ing.unit})
-                                                    </option>
-                                                ))}
+                                                {ingredients
+                                                    .filter(ing => !formData.recipe.some(r => r.ingredientId === ing.id))
+                                                    .map(ing => (
+                                                        <option key={ing.id} value={ing.id}>
+                                                            {ing.name} ({ing.unit})
+                                                        </option>
+                                                    ))}
                                             </select>
                                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" size={16} />
                                         </div>
