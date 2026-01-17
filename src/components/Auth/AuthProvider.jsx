@@ -75,8 +75,20 @@ export const AuthProvider = ({ children }) => {
 
         const initAuth = async () => {
             try {
-                const { data: { session }, error } = await supabase.auth.getSession();
-                if (error) throw error;
+                // getUser() verifies the session with the server, ensuring the user still exists
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+                if (userError || !user) {
+                    console.log('[Auth] User not found or session invalid, clearing local state');
+                    await supabase.auth.signOut();
+                    await handleSession(null);
+                    return;
+                }
+
+                // If user exists, get the session to initialize the app
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+                if (sessionError) throw sessionError;
+
                 await handleSession(session);
             } catch (e) {
                 console.error('[Auth] Init error:', e);
