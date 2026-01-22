@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Search, AlertCircle } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import SlideOver from '../ui/SlideOver';
+import { useLang } from '../../i18n';
 
 const IngredientManager = () => {
     const { ingredients, units, addIngredient, removeIngredient, updateIngredientQuantity, addToast } = useInventoryStore();
+    const { t } = useLang();
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const [editingQty, setEditingQty] = useState(null);
@@ -15,9 +17,9 @@ const IngredientManager = () => {
 
     const validate = () => {
         const newErrors = {};
-        if (!formData.name.trim()) newErrors.name = 'Введите название материала';
-        if (formData.quantity === '' || Number(formData.quantity) < 0) newErrors.quantity = 'Количество не может быть отрицательным';
-        if (formData.minStock && Number(formData.minStock) < 0) newErrors.minStock = 'Мин. остаток не может быть отрицательным';
+        if (!formData.name.trim()) newErrors.name = t.ingredients.errorName || 'Введите название материала';
+        if (formData.quantity === '' || Number(formData.quantity) < 0) newErrors.quantity = t.ingredients.errorQuantity || 'Количество не может быть отрицательным';
+        if (formData.minStock && Number(formData.minStock) < 0) newErrors.minStock = t.ingredients.errorMinStock || 'Мин. остаток не может быть отрицательным';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -48,7 +50,7 @@ const IngredientManager = () => {
         });
 
         if (result.success) {
-            addToast(formData.id ? 'Материал обновлён' : 'Материал добавлен', 'success');
+            addToast(formData.id ? t.ingredients.updated || 'Материал обновлён' : t.ingredients.added || 'Материал добавлен', 'success');
             setIsSlideOpen(false);
         }
     };
@@ -56,12 +58,12 @@ const IngredientManager = () => {
     const handleInlineEdit = (id, value) => {
         updateIngredientQuantity(id, Number(value));
         setEditingQty(null);
-        addToast('Остаток обновлён', 'success');
+        addToast(t.ingredients.stockUpdated || 'Остаток обновлён', 'success');
     };
 
     const handleDelete = (id) => {
         removeIngredient(id);
-        addToast('Сырьё удалено', 'success');
+        addToast(t.ingredients.deleted || 'Материал удален', 'success');
     };
 
     const getStockStatus = (ing) => {
@@ -77,10 +79,11 @@ const IngredientManager = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <div>
-                    <p className="text-[var(--text-secondary)] text-sm">Управляйте остатками ингредиентов и материалов.</p>
+                    <h2 className="text-xl font-bold text-[var(--text-main)]">{t.ingredients.title}</h2>
+                    <p className="text-[var(--text-secondary)] text-sm">{t.ingredients.desc || 'Управляйте остатками материалов и сырья.'}</p>
                 </div>
                 <button onClick={() => openSlide()} className="btn btn-primary">
-                    <Plus size={18} /> Добавить сырьё
+                    <Plus size={18} /> {t.ingredients.addNew}
                 </button>
             </div>
 
@@ -91,10 +94,10 @@ const IngredientManager = () => {
                     <input
                         id="ingredient-search"
                         className="w-full pl-10 pr-4 py-2.5 bg-transparent text-[var(--text-main)] placeholder-[var(--text-light)] focus:outline-none"
-                        placeholder="Поиск по названию..."
+                        placeholder={t.ingredients.searchPlaceholder}
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        aria-label="Поиск материалов"
+                        aria-label={t.ingredients.searchLabel || "Поиск материалов"}
                     />
                 </div>
             </div>
@@ -117,14 +120,16 @@ const IngredientManager = () => {
                                 <div className="flex flex-col gap-1 min-w-0">
                                     <h3 className="text-lg font-bold text-[var(--text-main)] leading-tight truncate" title={ing.name}>{ing.name}</h3>
                                     <span className="text-[13px] font-mono text-[var(--text-light)]">
-                                        Мин: {ing.minStock || 0} {ing.unit}
+                                        {t.ingredients.minStock}: {ing.minStock || 0} {t.unitNames?.[ing.unit] || ing.unit}
                                     </span>
                                 </div>
                                 <div className="flex flex-col items-end gap-0.5 shrink-0">
                                     <div className={`text-2xl font-extrabold font-mono leading-none ${status === 'danger' ? 'text-red-600' : 'text-[var(--text-main)]'}`}>
                                         {ing.quantity}
                                     </div>
-                                    <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">{ing.unit}</div>
+                                    <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">
+                                        {t.unitNames?.[ing.unit] || ing.unit}
+                                    </div>
                                 </div>
                             </div>
 
@@ -134,7 +139,7 @@ const IngredientManager = () => {
                                     onClick={() => {
                                         if (ing.quantity > 0) {
                                             updateIngredientQuantity(ing.id, ing.quantity - 1);
-                                            addToast(`−1 ${ing.unit}`, 'info');
+                                            addToast(`−1 ${t.unitNames?.[ing.unit] || ing.unit}`, 'info');
                                         }
                                     }}
                                     disabled={ing.quantity <= 0}
@@ -146,7 +151,7 @@ const IngredientManager = () => {
                                     className="h-10 w-10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] rounded-lg transition-all"
                                     onClick={() => {
                                         updateIngredientQuantity(ing.id, ing.quantity + 1);
-                                        addToast(`+1 ${ing.unit}`, 'info');
+                                        addToast(`+1 ${t.unitNames?.[ing.unit] || ing.unit}`, 'info');
                                     }}
                                     aria-label={`Увеличить количество ${ing.name}`}
                                 >
@@ -177,8 +182,8 @@ const IngredientManager = () => {
             {filtered.length === 0 && (
                 <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
                     <Search size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
-                    <p className="font-medium text-[var(--text-secondary)]">Склад пуст</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">Добавьте материалы, из которых будете производить продукцию.</p>
+                    <p className="font-medium text-[var(--text-secondary)]">{t.ingredients.empty || 'Склад пуст'}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{t.ingredients.emptyDesc || 'Добавьте материалы, из которых будете производить продукцию.'}</p>
                 </div>
             )}
 
@@ -186,11 +191,11 @@ const IngredientManager = () => {
             <SlideOver
                 isOpen={isSlideOpen}
                 onClose={() => setIsSlideOpen(false)}
-                title={formData.id ? 'Редактировать сырьё' : 'Добавить сырьё'}
+                title={formData.id ? t.ingredients.edit || 'Редактировать материал' : t.ingredients.addNew}
             >
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                     <div>
-                        <label htmlFor="ingredient-name" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Название</label>
+                        <label htmlFor="ingredient-name" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.name}</label>
                         <input
                             id="ingredient-name"
                             className={`input ${errors.name ? 'input-error' : ''}`}
@@ -210,18 +215,18 @@ const IngredientManager = () => {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="ingredient-unit" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Ед. измерения</label>
+                            <label htmlFor="ingredient-unit" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.unit}</label>
                             <select
                                 id="ingredient-unit"
                                 className="input appearance-none bg-[var(--bg-card)]"
                                 value={formData.unit}
                                 onChange={e => setFormData({ ...formData, unit: e.target.value })}
                             >
-                                {units.map(u => <option key={u} value={u}>{u}</option>)}
+                                {units.map(u => <option key={u} value={u}>{t.unitNames?.[u] || u}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="ingredient-minstock" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Мин. остаток</label>
+                            <label htmlFor="ingredient-minstock" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.minStock}</label>
                             <input
                                 type="number"
                                 id="ingredient-minstock"
@@ -239,7 +244,7 @@ const IngredientManager = () => {
                     </div>
 
                     <div>
-                        <label htmlFor="ingredient-quantity" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Текущий остаток</label>
+                        <label htmlFor="ingredient-quantity" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.quantity}</label>
                         <input
                             type="number"
                             id="ingredient-quantity"
@@ -256,16 +261,16 @@ const IngredientManager = () => {
                         />
                         {errors.quantity && <p id="ingredient-quantity-error" className="error-message mt-1" role="alert">{errors.quantity}</p>}
                         <p id="ingredient-quantity-hint" className="text-xs text-[var(--text-light)] mt-2">
-                            Используйте для начального ввода или инвентаризации.
+                            {t.ingredients.quantityHint || 'Используйте для начального ввода или инвентаризации.'}
                         </p>
                     </div>
 
                     <div className="flex gap-3 pt-6 mt-8 border-t border-[var(--border)] sticky bottom-0 bg-[var(--bg-card)] z-10">
                         <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1 h-12 text-base">
-                            Отмена
+                            {t.common.cancel}
                         </button>
                         <button type="submit" className="btn btn-primary flex-1 h-12 text-base shadow-lg shadow-blue-500/20">
-                            Сохранить
+                            {t.common.save}
                         </button>
                     </div>
                 </form>

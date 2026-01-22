@@ -2,6 +2,7 @@ import React from 'react';
 import { Package, Beef, Plus, ArrowRight, Sparkles, TrendingDown, CheckCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { useLang } from '../../i18n';
 
 
 
@@ -26,7 +27,7 @@ const OnboardingCard = ({ step, title, description, linkTo, linkText, icon: Icon
     </div>
 );
 
-const LowStockItem = ({ name, quantity, unit, minStock, linkTo }) => {
+const LowStockItem = ({ name, quantity, unit, minStock, linkTo, t }) => {
     const isOut = quantity === 0;
     const isLow = minStock && quantity <= minStock;
 
@@ -35,14 +36,16 @@ const LowStockItem = ({ name, quantity, unit, minStock, linkTo }) => {
             <div className={`w-2 h-2 rounded-full flex-shrink-0 ${isOut ? 'bg-red-500' : isLow ? 'bg-orange-400' : 'bg-green-500'}`} />
             <span className="flex-1 text-sm truncate">{name}</span>
             <span className={`font-mono text-sm font-bold ${isOut ? 'text-red-500' : isLow ? 'text-orange-500' : ''}`}>
-                {quantity} {unit}
+                {quantity} {t.unitNames?.[unit] || unit}
             </span>
         </Link>
     );
 };
 
+
 const Dashboard = () => {
     const { ingredients, products, history } = useInventoryStore();
+    const { t } = useLang();
 
     const totalIngredients = ingredients.length;
     const totalProducts = products.length;
@@ -75,36 +78,35 @@ const Dashboard = () => {
                 <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-200 dark:border-blue-800">
                     <div className="flex items-center gap-3 mb-4">
                         <Sparkles className="text-blue-600" size={24} aria-hidden="true" />
-                        <h2 className="font-bold m-0 text-lg">Добро пожаловать в SKLAD!</h2>
+                        <h2 className="font-bold m-0 text-lg">{t.common.welcome || 'Добро пожаловать в SKLAD!'}</h2>
                     </div>
                     <p className="text-[var(--text-secondary)] mb-6">
-                        Начните с настройки склада для вашего производства.
-                        Выполните эти 3 шага:
+                        {t.common.welcomeDesc || 'Начните с настройки склада для вашего производства.'}
                     </p>
                     <div className="grid gap-4 md:grid-cols-3">
                         <OnboardingCard
                             step={1}
                             icon={Beef}
-                            title="Добавьте материалы"
-                            description="Сырьё, материалы, комплектующие..."
-                            linkTo="/ingredients"
-                            linkText="Добавить"
+                            title={t.ingredients.title}
+                            description={t.ingredients.descShort || "Сырьё, материалы, комплектующие..."}
+                            linkTo="/app/ingredients"
+                            linkText={t.common.add}
                         />
                         <OnboardingCard
                             step={2}
                             icon={Package}
-                            title="Создайте продукты"
-                            description="Готовые изделия с рецептами"
-                            linkTo="/products"
-                            linkText="Создать"
+                            title={t.products.title}
+                            description={t.products.descShort || "Готовые изделия с составом"}
+                            linkTo="/app/products"
+                            linkText={t.common.add}
                         />
                         <OnboardingCard
                             step={3}
                             icon={Plus}
-                            title="Регистрируйте"
-                            description="Производство и списание материалов"
-                            linkTo="/production"
-                            linkText="Начать"
+                            title={t.nav.production}
+                            description={t.production.descShort || "Производство и списание сырья"}
+                            linkTo="/app/production"
+                            linkText={t.common.start || "Начать"}
                         />
                     </div>
                 </div>
@@ -117,10 +119,10 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between mb-6"> {/* More spacing */}
                         <h2 className="font-bold m-0 flex items-center gap-3 text-lg">
                             <TrendingDown size={20} className="text-orange-500" aria-hidden="true" />
-                            Мало на складе (Сырьё)
+                            {t.ingredients.lowStock || 'Мало на складе (Сырьё)'}
                         </h2>
-                        <Link to="/ingredients" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
-                            Все →
+                        <Link to="/app/ingredients" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                            {t.common.all || 'Все'} →
                         </Link>
                     </div>
                     {lowIngredients.length > 0 ? (
@@ -132,14 +134,15 @@ const Dashboard = () => {
                                     quantity={ing.quantity}
                                     unit={ing.unit}
                                     minStock={ing.minStock}
-                                    linkTo="/ingredients"
+                                    linkTo="/app/ingredients"
+                                    t={t}
                                 />
                             ))}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-8 text-green-600 bg-green-50 dark:bg-green-900/20 rounded-lg">
                             <CheckCircle size={32} className="mb-2" />
-                            <p className="font-medium">Все материалы в наличии</p>
+                            <p className="font-medium">{t.common.allInStock}</p>
                         </div>
                     )}
                 </div>
@@ -149,10 +152,10 @@ const Dashboard = () => {
                     <div className="flex items-center justify-between mb-6">
                         <h2 className="font-bold m-0 flex items-center gap-3 text-lg">
                             <TrendingDown size={20} className="text-orange-500" aria-hidden="true" />
-                            Мало на складе (Продукция)
+                            {t.products.lowStock || 'Мало на складе (Продукция)'}
                         </h2>
-                        <Link to="/products" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
-                            Все →
+                        <Link to="/app/products" className="text-sm font-medium text-blue-600 hover:text-blue-800 transition-colors">
+                            {t.common.all || 'Все'} →
                         </Link>
                     </div>
                     {lowProducts.length > 0 ? (
@@ -163,7 +166,8 @@ const Dashboard = () => {
                                     name={prod.name}
                                     quantity={prod.quantity || 0}
                                     unit={prod.unit}
-                                    linkTo="/products"
+                                    linkTo="/app/products"
+                                    t={t}
                                 />
                             ))}
                         </div>
@@ -171,7 +175,7 @@ const Dashboard = () => {
                         <div className="flex flex-col items-center justify-center py-8 text-green-600 bg-green-50 dark:bg-green-900/20 rounded-lg">
                             <CheckCircle size={32} className="mb-2" />
                             <p className="font-medium">
-                                {products.length === 0 ? 'Нет продуктов' : 'Всё в достаточном количестве'}
+                                {products.length === 0 ? t.products.noFound : t.common.allInStock}
                             </p>
                         </div>
                     )}
@@ -180,7 +184,7 @@ const Dashboard = () => {
 
             {/* Recent Activity */}
             <div className="card">
-                <h2 className="font-bold mb-6 text-xl">Последние действия</h2>
+                <h2 className="font-bold mb-6 text-xl">{t.history.title}</h2>
                 {history.length > 0 ? (
                     <div className="space-y-4"> {/* Increased spacing */}
                         {history.slice(0, 5).map(h => (
@@ -190,16 +194,20 @@ const Dashboard = () => {
                                     }`} />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-base text-gray-900 dark:text-gray-100 leading-relaxed">
-                                        {/* Parse description to bold the entity name roughly if possible, otherwise just display */}
-                                        {/* Simple heuristic: bold text between quotes if any, otherwise just text */}
-                                        {h.description.split('"').map((part, i) =>
+                                        {/* Translate units and keywords in description */}
+                                        {Object.entries(t.unitNames || {}).reduce((acc, [ru, translation]) => {
+                                            if (ru === translation) return acc;
+                                            const regex = new RegExp(`\\b${ru}\\b`, 'g');
+                                            return acc.replace(regex, translation);
+                                        }, h.description).split('"').map((part, i) =>
                                             i % 2 === 1 ? <span key={i} className="font-bold">{part}</span> : part
                                         )}
                                     </p>
                                     <p className="text-xs font-medium text-gray-400 mt-1">
-                                        {new Date(h.date).toLocaleString('ru-RU', {
-                                            day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit'
-                                        })}
+                                        {new Date(h.date).toLocaleString(
+                                            t.code === 'uk' ? 'uk-UA' : t.code === 'en' ? 'en-US' : 'ru-RU',
+                                            { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }
+                                        )}
                                     </p>
                                 </div>
                             </div>
@@ -208,7 +216,7 @@ const Dashboard = () => {
                 ) : (
                     <div className="text-center py-8">
                         <p className="text-[var(--text-light)] text-sm">
-                            Здесь будет отображаться история операций
+                            {t.history.empty || 'Здесь будет отображаться история операций'}
                         </p>
                     </div>
                 )}

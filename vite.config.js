@@ -5,8 +5,16 @@ import autoprefixer from 'autoprefixer'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-    plugins: [react()],
+    plugins: [react({
+        // Handle the "preamble" error in Vitest
+        fastRefresh: process.env.NODE_ENV !== 'test'
+    })],
     base: '/sklad/',
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/test/setup.js',
+    },
     css: {
         postcss: {
             plugins: [

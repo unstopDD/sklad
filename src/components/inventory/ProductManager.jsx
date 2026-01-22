@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import SlideOver from '../ui/SlideOver';
+import { useLang } from '../../i18n';
 
 const ProductManager = () => {
     const { products, ingredients, units, addProduct, removeProduct, addToast } = useInventoryStore();
+    const { t } = useLang();
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const [expandedRecipe, setExpandedRecipe] = useState(null);
@@ -38,7 +40,7 @@ const ProductManager = () => {
             );
 
             if (isDuplicate) {
-                addToast('Этот ингредиент уже есть в рецепте', 'warning');
+                addToast(t.common.alreadyInComposition || 'Это сырье уже есть в составе', 'warning');
                 return;
             }
 
@@ -105,10 +107,10 @@ const ProductManager = () => {
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
                 <p className="text-[var(--text-secondary)] text-sm">
-                    Создавайте технологические карты изделий.
+                    {t.products.desc || 'Управляйте составом ваших изделий.'}
                 </p>
                 <button onClick={() => openSlide()} className="btn btn-primary">
-                    <Plus size={18} /> Создать продукт
+                    <Plus size={18} /> {t.products.addNew}
                 </button>
             </div>
 
@@ -119,10 +121,10 @@ const ProductManager = () => {
                     <input
                         id="product-search"
                         className="w-full pl-10 pr-4 py-2.5 bg-transparent text-[var(--text-main)] placeholder-[var(--text-light)] focus:outline-none"
-                        placeholder="Поиск продукта..."
+                        placeholder={t.products.searchPlaceholder}
                         value={filter}
                         onChange={e => setFilter(e.target.value)}
-                        aria-label="Поиск продуктов"
+                        aria-label={t.common.searchLabel || "Поиск продуктов"}
                     />
                 </div>
             </div>
@@ -135,12 +137,12 @@ const ProductManager = () => {
                             <div className="flex flex-col gap-1 min-w-0">
                                 <h3 className="text-lg font-bold text-[var(--text-main)] leading-tight">{product.name}</h3>
                                 <span className="text-[13px] font-mono text-[var(--text-light)]">
-                                    {product.recipe?.length || 0} ингредиентов
+                                    {product.recipe?.length || 0} {t.products.components}
                                 </span>
                             </div>
                             <div className="flex flex-col items-end gap-0.5">
                                 <div className="text-2xl font-extrabold font-mono text-[var(--text-main)] leading-none">{product.quantity || 0}</div>
-                                <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">{product.unit}</div>
+                                <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">{t.unitNames?.[product.unit] || product.unit}</div>
                             </div>
                         </div>
 
@@ -148,7 +150,7 @@ const ProductManager = () => {
                         {expandedRecipe === product.id && product.recipe?.length > 0 && (
                             <div className="pt-3 border-t border-[var(--border)] animate-in fade-in slide-in-from-top-1 duration-200">
                                 <p className="text-xs font-medium text-[var(--text-secondary)] mb-2">
-                                    Состав на 1 {product.unit}:
+                                    {t.products.compositionLabel || 'Состав'} на 1 {t.unitNames?.[product.unit] || product.unit}:
                                 </p>
                                 <div className="flex flex-wrap gap-1.5">
                                     {product.recipe.map((item, idx) => (
@@ -165,10 +167,10 @@ const ProductManager = () => {
                                 className="flex-1 h-10 px-3 flex items-center justify-center gap-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] rounded-lg transition-all"
                                 onClick={() => setExpandedRecipe(expandedRecipe === product.id ? null : product.id)}
                                 aria-expanded={expandedRecipe === product.id}
-                                aria-label={expandedRecipe === product.id ? `Скрыть рецепт ${product.name}` : `Показать рецепт ${product.name}`}
+                                aria-label={expandedRecipe === product.id ? t.products.hideComposition : t.products.showComposition}
                             >
                                 {expandedRecipe === product.id ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}
-                                <span className="text-xs">Рецепт</span>
+                                <span className="text-xs">{t.products.composition}</span>
                             </button>
                             <button
                                 className="h-10 w-10 flex items-center justify-center text-[var(--primary)] hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-transparent hover:border-blue-200 dark:hover:border-blue-800 rounded-lg transition-all"
@@ -193,8 +195,8 @@ const ProductManager = () => {
             {filtered.length === 0 && (
                 <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
                     <Package size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
-                    <p className="font-medium text-[var(--text-secondary)]">Продукты не найдены</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">Создайте первый продукт, чтобы начать производство</p>
+                    <p className="font-medium text-[var(--text-secondary)]">{t.products.noFound || 'Продукты не найдены'}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{t.products.createFirst || 'Создайте первый продукт, чтобы начать производство'}</p>
                 </div>
             )}
 
@@ -202,15 +204,15 @@ const ProductManager = () => {
             <SlideOver
                 isOpen={isSlideOpen}
                 onClose={() => setIsSlideOpen(false)}
-                title={formData.id ? 'Редактировать продукт' : 'Новый продукт'}
+                title={formData.id ? t.products.editProduct : t.products.newProduct}
             >
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                     <div>
-                        <label htmlFor="product-name" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Название продукта</label>
+                        <label htmlFor="product-name" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.products.name}</label>
                         <input
                             id="product-name"
                             className={`input ${errors.name ? 'input-error' : ''}`}
-                            placeholder="Например: Изделие А, Комплект B..."
+                            placeholder={t.products.namePlaceholder || "Название продукта..."}
                             value={formData.name}
                             onChange={e => {
                                 setFormData({ ...formData, name: e.target.value });
@@ -233,7 +235,7 @@ const ProductManager = () => {
                                 value={formData.unit}
                                 onChange={e => setFormData({ ...formData, unit: e.target.value })}
                             >
-                                {units.map(u => <option key={u} value={u}>{u}</option>)}
+                                {units.map(u => <option key={u} value={u}>{t.unitNames?.[u] || u}</option>)}
                             </select>
                             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] pointer-events-none" size={16} />
                         </div>
@@ -242,9 +244,9 @@ const ProductManager = () => {
                     {/* Recipe Builder */}
                     <div className="space-y-4 pt-6 border-t border-[var(--border)]">
                         <div className="flex items-center justify-between">
-                            <label className="block text-sm font-medium text-[var(--text-main)]">Рецепт (состав)</label>
+                            <label className="block text-sm font-medium text-[var(--text-main)]">{t.products.composition} ({t.products.compositionLabelLower || 'состав'})</label>
                             <span className="text-xs text-[var(--text-secondary)] bg-[var(--bg-page)] px-2 py-0.5 rounded-full">
-                                {formData.recipe.length} ингредиентов
+                                {formData.recipe.length} {t.products.components}
                             </span>
                         </div>
 
@@ -266,7 +268,7 @@ const ProductManager = () => {
                                     type="button"
                                     className="btn btn-secondary w-full justify-center border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                                 >
-                                    <Plus size={18} /> Добавить ингредиент
+                                    <Plus size={18} /> {t.products.addComponent}
                                 </button>
                             </div>
                         )}
@@ -324,7 +326,7 @@ const ProductManager = () => {
                                                             className="flex-1 h-8 flex items-center justify-center font-mono text-lg font-bold text-[var(--text-main)] cursor-pointer hover:bg-[var(--bg-card)] hover:text-[var(--primary)] rounded transition-colors select-none"
                                                             title="Нажмите, чтобы изменить количество"
                                                         >
-                                                            {item.amount} <span className="text-[var(--text-secondary)] text-xs ml-1 font-normal">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                            {item.amount} <span className="text-[var(--text-secondary)] text-xs ml-1 font-normal">{t.unitNames?.[ingredients.find(i => i.id === item.ingredientId)?.unit] || ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
                                                         </div>
                                                     )}
 
@@ -342,7 +344,7 @@ const ProductManager = () => {
                                                         type="button"
                                                         onClick={() => removeRecipeItem(idx)}
                                                         className="h-8 w-8 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        aria-label={`Удалить ${getIngredientName(item.ingredientId)} из рецепта`}
+                                                        aria-label={`${t.common.delete || 'Удалить'} ${getIngredientName(item.ingredientId)} ${t.products.fromComposition || 'из состава'}`}
                                                     >
                                                         <Trash2 size={16} aria-hidden="true" />
                                                     </button>
@@ -361,7 +363,7 @@ const ProductManager = () => {
                                 onClick={() => setIsAddingRecipeItem(true)}
                                 className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[var(--border)] rounded-xl text-[var(--text-secondary)] hover:text-[var(--primary)] hover:border-[var(--primary)] hover:bg-[var(--primary-light)] transition-all font-medium text-sm"
                             >
-                                <Plus size={18} /> Добавить ингредиент
+                                <Plus size={18} /> {t.products.addComponent}
                             </button>
                         )}
 
@@ -384,7 +386,7 @@ const ProductManager = () => {
                                                     .filter(ing => !formData.recipe.some(r => r.ingredientId === ing.id))
                                                     .map(ing => (
                                                         <option key={ing.id} value={ing.id}>
-                                                            {ing.name} ({ing.unit})
+                                                            {ing.name} ({t.unitNames?.[ing.unit] || ing.unit})
                                                         </option>
                                                     ))}
                                             </select>
@@ -412,7 +414,7 @@ const ProductManager = () => {
                                         <div className="w-24">
                                             <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Ед. изм.</label>
                                             <div className="h-[50px] flex items-center justify-center bg-[var(--bg-page)] rounded-xl border border-[var(--border)] font-mono text-sm text-[var(--text-secondary)]">
-                                                {recipeItem.ingredientId ? ingredients.find(i => i.id === recipeItem.ingredientId)?.unit : '---'}
+                                                {recipeItem.ingredientId ? (t.unitNames?.[ingredients.find(i => i.id === recipeItem.ingredientId)?.unit] || ingredients.find(i => i.id === recipeItem.ingredientId)?.unit) : '---'}
                                             </div>
                                         </div>
                                     </div>
@@ -440,10 +442,10 @@ const ProductManager = () => {
 
                     <div className="flex gap-3 pt-6 mt-8 border-t border-[var(--border)] sticky bottom-0 bg-[var(--bg-card)] z-10">
                         <button type="button" onClick={() => setIsSlideOpen(false)} className="btn btn-secondary flex-1 h-12 text-base">
-                            Отмена
+                            {t.common.cancel}
                         </button>
                         <button type="submit" className="btn btn-primary flex-1 h-12 text-base shadow-lg shadow-blue-500/20">
-                            Сохранить продукт
+                            {t.common.save}
                         </button>
                     </div>
                 </form>

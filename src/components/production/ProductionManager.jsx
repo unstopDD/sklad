@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Factory, AlertCircle, Check } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { useLang } from '../../i18n';
 
 const ProductionManager = () => {
     const { products, ingredients, produceProduct, addToast } = useInventoryStore();
+    const { t } = useLang();
     const [selectedProduct, setSelectedProduct] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [errors, setErrors] = useState({});
@@ -46,13 +48,16 @@ const ProductionManager = () => {
         if (!validate()) return;
 
         if (!can) {
-            addToast('Недостаточно сырья', 'error');
+            addToast(t.production.notEnoughMaterials || 'Недостаточно сырья', 'error');
             return;
         }
 
         const result = await produceProduct(selectedProduct, quantity);
         if (result.success) {
-            addToast(`Произведено ${quantity} ${product.unit} "${product.name}"`, 'success');
+            addToast(t.production.registerSuccess
+                .replace('{quantity}', quantity)
+                .replace('{unit}', t.unitNames?.[product.unit] || product.unit)
+                .replace('{name}', product.name), 'success');
             setQuantity(1);
             setErrors({});
         } else {
@@ -66,18 +71,18 @@ const ProductionManager = () => {
             <div className="mb-8">
                 <h2 className="text-xl font-bold text-[var(--text-main)] flex items-center gap-2 mb-2">
                     <Factory className="text-[var(--primary)]" size={24} />
-                    Регистрация производства
+                    {t.nav.production}
                 </h2>
                 <p className="text-[var(--text-secondary)] text-sm max-w-2xl">
-                    Выберите продукт для производства. Ингредиенты будут автоматически списаны со склада, а готовая продукция добавлена на баланс.
+                    {t.production.desc || 'Выберите продукт для производства. Компоненты будут автоматически списаны со склада.'}
                 </p>
             </div>
 
             {products.length === 0 ? (
                 <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
                     <Factory size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
-                    <p className="font-medium text-[var(--text-secondary)]">Нет доступных продуктов</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">Создайте хотя бы один продукт с рецептом</p>
+                    <p className="font-medium text-[var(--text-secondary)]">{t.production.noProducts || 'Нет доступных продуктов'}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{t.production.createComposition || 'Создайте хотя бы один продукт с составом'}</p>
                 </div>
             ) : (
                 <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -85,7 +90,7 @@ const ProductionManager = () => {
                     <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] shadow-sm p-6 space-y-6">
                         <div className="space-y-4">
                             <div>
-                                <label htmlFor="prod-select" className="block text-sm font-semibold text-[var(--text-main)] mb-2">ПРОДУКТ</label>
+                                <label htmlFor="prod-select" className="block text-sm font-semibold text-[var(--text-main)] mb-2">{t.products.name.toUpperCase()}</label>
                                 <div className="relative">
                                     <select
                                         id="prod-select"
@@ -96,7 +101,7 @@ const ProductionManager = () => {
                                             if (errors.selectedProduct) setErrors({ ...errors, selectedProduct: null });
                                         }}
                                     >
-                                        <option value="">Выберите продукт...</option>
+                                        <option value="">{t.production.selectProductPlaceholder}</option>
                                         {products.map(p => (
                                             <option key={p.id} value={p.id}>{p.name}</option>
                                         ))}
@@ -109,7 +114,7 @@ const ProductionManager = () => {
                             </div>
 
                             <div>
-                                <label htmlFor="prod-qty" className="block text-sm font-semibold text-[var(--text-main)] mb-2">КОЛИЧЕСТВО</label>
+                                <label htmlFor="prod-qty" className="block text-sm font-semibold text-[var(--text-main)] mb-2">{t.ingredients.quantity.toUpperCase()}</label>
                                 <div className="flex gap-4">
                                     <div className="flex-1 relative">
                                         <input
@@ -125,7 +130,7 @@ const ProductionManager = () => {
                                         />
                                     </div>
                                     <div className="w-24 h-[46px] flex items-center justify-center bg-[var(--bg-page)] rounded-xl border border-[var(--border)] text-[var(--text-secondary)] font-medium">
-                                        {product?.unit || 'ед.'}
+                                        {t.unitNames?.[product?.unit] || product?.unit || t.common.unitAbbr}
                                     </div>
                                 </div>
                                 {errors.quantity && <p className="error-message mt-2">{errors.quantity}</p>}
@@ -145,7 +150,7 @@ const ProductionManager = () => {
                                 `}
                             >
                                 <Factory size={20} />
-                                <span>Зафиксировать производство</span>
+                                <span>{t.production.registerProduction || 'Зафиксировать производство'}</span>
                             </button>
                         </div>
                     </div>
@@ -168,9 +173,9 @@ const ProductionManager = () => {
                                         )}
                                         <div>
                                             <h3 className={`font-bold ${can ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                                {can ? 'Производство возможно' : 'Недостаточно сырья'}
+                                                {can ? (t.production.possible || 'Производство возможно') : (t.production.notEnoughMaterials || 'Недостаточно сырья')}
                                             </h3>
-                                            <p className="text-xs opacity-80 text-[var(--text-secondary)]">Проверка складских остатков</p>
+                                            <p className="text-xs opacity-80 text-[var(--text-secondary)]">{t.production.stockCheck || 'Проверка остатков'}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -179,7 +184,7 @@ const ProductionManager = () => {
                                     {product.recipe?.length > 0 ? (
                                         <>
                                             <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-4">
-                                                Списание со склада ({product.recipe.length} поз.)
+                                                {t.production.writeOff || 'Списание со склада'} ({product.recipe.length} поз.)
                                             </h4>
                                             <div className="space-y-3">
                                                 {product.recipe.map((item, idx) => {
@@ -204,7 +209,7 @@ const ProductionManager = () => {
                                                                         дост: {available}
                                                                     </div>
                                                                 </div>
-                                                                <span className="text-xs text-[var(--text-secondary)] w-6">{ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
+                                                                <span className="text-xs text-[var(--text-secondary)] w-6">{t.unitNames?.[ingredients.find(i => i.id === item.ingredientId)?.unit] || ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
                                                             </div>
                                                         </div>
                                                     );
@@ -213,7 +218,7 @@ const ProductionManager = () => {
                                         </>
                                     ) : (
                                         <div className="text-center py-6 text-[var(--text-secondary)] bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-[var(--border)]">
-                                            У этого продукта нет рецепта
+                                            {t.production.noComposition || 'У этого продукта нет состава'}
                                         </div>
                                     )}
                                 </div>
@@ -221,9 +226,9 @@ const ProductionManager = () => {
                         ) : (
                             <div className="bg-[var(--bg-page)] rounded-[var(--radius)] border border-dashed border-[var(--border)] p-8 text-center h-full flex flex-col items-center justify-center min-h-[300px]">
                                 <Factory size={48} className="text-[var(--text-light)] opacity-20 mb-4" />
-                                <p className="text-[var(--text-secondary)] font-medium">Выберите продукт</p>
+                                <p className="text-[var(--text-secondary)] font-medium">{t.production.selectProduct || 'Выберите продукт'}</p>
                                 <p className="text-sm text-[var(--text-light)] max-w-xs mx-auto mt-2">
-                                    Справа отобразится расчет необходимых ингредиентов и статус доступности
+                                    {t.production.previewDesc || 'Справа отобразится расчет необходимых компонентов и статус доступности'}
                                 </p>
                             </div>
                         )}

@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2 } from 'lucide-react';
+import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2, Globe } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import Toast from '../ui/Toast';
+import { useLang, LanguageSelector } from '../../i18n';
 
-const NavItem = ({ to, icon: Icon, label, onClick }) => (
+const NavItem = ({ to, icon: Icon, label, onClick, end = false }) => (
     <NavLink
         to={to}
+        end={end}
         onClick={onClick}
         className={({ isActive }) =>
             `flex items-center gap-3 px-3 py-3 rounded-lg transition-all text-base font-bold ${isActive
@@ -22,15 +24,16 @@ const NavItem = ({ to, icon: Icon, label, onClick }) => (
 
 const StatsWidget = () => {
     const { ingredients, products } = useInventoryStore();
+    const { t } = useLang();
 
     const totalIngredients = ingredients.length;
     const totalProducts = products.length;
     const lowStock = ingredients.filter(i => i.minStock && i.quantity <= i.minStock).length;
 
     const stats = [
-        { label: 'Материалы', value: totalIngredients, icon: Beef, color: 'text-blue-500' },
-        { label: 'Продукция', value: totalProducts, icon: Package, color: 'text-green-500' },
-        { label: 'Мало', value: lowStock, icon: AlertTriangle, color: 'text-orange-500' }
+        { label: t.stats.materials, value: totalIngredients, icon: Beef, color: 'text-blue-500' },
+        { label: t.stats.products, value: totalProducts, icon: Package, color: 'text-green-500' },
+        { label: t.stats.low, value: lowStock, icon: AlertTriangle, color: 'text-orange-500' }
     ];
 
     return (
@@ -50,6 +53,7 @@ const StatsWidget = () => {
 
 const ThemeToggle = () => {
     const { darkMode, toggleDarkMode } = useInventoryStore();
+    const { t } = useLang();
 
     return (
         <button
@@ -58,13 +62,13 @@ const ThemeToggle = () => {
                 }`}
         >
             {darkMode ? <Sun size={18} /> : <Moon size={18} />}
-            <span>{darkMode ? 'Светлая тема' : 'Темная тема'}</span>
+            <span>{darkMode ? t.theme.light : t.theme.dark}</span>
         </button>
     );
 };
 
 const Logo = () => (
-    <div className="flex items-center gap-2">
+    <Link to="/app" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
         <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-black shadow-lg">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -73,7 +77,7 @@ const Logo = () => (
             </svg>
         </div>
         <span className="font-extrabold text-xl tracking-tight text-black dark:text-white">SKLAD</span>
-    </div>
+    </Link>
 );
 
 const Layout = () => {
@@ -82,6 +86,7 @@ const Layout = () => {
     const sidebarRef = useRef(null);
     const location = useLocation();
     const { darkMode, user, signOut, profile } = useInventoryStore();
+    const { t } = useLang();
 
     useEffect(() => {
         if (darkMode) {
@@ -98,14 +103,15 @@ const Layout = () => {
 
     const getPageTitle = () => {
         switch (location.pathname) {
-            case '/': return profile?.production_name || 'Главная панель';
-            case '/units': return 'Единицы измерения';
-            case '/ingredients': return 'Склад сырья';
-            case '/products': return 'Продукты и Рецепты';
-            case '/production': return 'Производство';
-            case '/writeoff': return 'Списание';
-            case '/history': return 'История операций';
-            default: return 'Склад';
+            case '/app':
+            case '/app/': return profile?.production_name || t.nav.home;
+            case '/app/units': return t.nav.units;
+            case '/app/ingredients': return t.ingredients.title;
+            case '/app/products': return t.products.title;
+            case '/app/production': return t.nav.production;
+            case '/app/writeoff': return t.nav.writeoff;
+            case '/app/history': return t.nav.history;
+            default: return 'SKLAD';
         }
     };
 
@@ -131,16 +137,16 @@ const Layout = () => {
 
                 <nav className="flex-1 p-4 space-y-1 overflow-y-auto flex flex-col" aria-label="Главное меню">
                     <div className="space-y-2">
-                        <NavItem to="/" icon={LayoutDashboard} label="Главная" onClick={() => setIsMobileMenuOpen(false)} />
-                        <NavItem to="/ingredients" icon={Beef} label="Склад сырья" onClick={() => setIsMobileMenuOpen(false)} />
-                        <NavItem to="/products" icon={Package} label="Продукты" onClick={() => setIsMobileMenuOpen(false)} />
-                        <NavItem to="/production" icon={Factory} label="Производство" onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app" icon={LayoutDashboard} label={t.nav.home} onClick={() => setIsMobileMenuOpen(false)} end />
+                        <NavItem to="/app/ingredients" icon={Beef} label={t.nav.ingredients} onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app/products" icon={Package} label={t.nav.products} onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app/production" icon={Factory} label={t.nav.production} onClick={() => setIsMobileMenuOpen(false)} />
 
                         <div className="py-2" />
 
-                        <NavItem to="/writeoff" icon={Trash2} label="Списание" onClick={() => setIsMobileMenuOpen(false)} />
-                        <NavItem to="/history" icon={Clock} label="История" onClick={() => setIsMobileMenuOpen(false)} />
-                        <NavItem to="/units" icon={Scale} label="Единицы изм." onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app/writeoff" icon={Trash2} label={t.nav.writeoff} onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app/history" icon={Clock} label={t.nav.history} onClick={() => setIsMobileMenuOpen(false)} />
+                        <NavItem to="/app/units" icon={Scale} label={t.nav.units} onClick={() => setIsMobileMenuOpen(false)} />
                     </div>
 
                     <div className="flex-1" />
@@ -171,23 +177,26 @@ const Layout = () => {
                         }}
                         disabled={isSigningOut}
                         aria-busy={isSigningOut}
-                        aria-label="Выйти из аккаунта"
+                        aria-label={t.auth.logout}
                         className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {isSigningOut ? (
                             <>
                                 <Loader2 className="animate-spin" size={16} aria-hidden="true" />
-                                Выход...
+                                {t.common.loading}
                             </>
                         ) : (
                             <>
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                                Выйти
+                                {t.auth.logout}
                             </>
                         )}
                     </button>
 
-                    <ThemeToggle />
+                    <div className="flex items-center justify-between gap-2">
+                        <ThemeToggle />
+                        <LanguageSelector />
+                    </div>
                     <div className="text-[10px] text-gray-400 dark:text-gray-500 font-medium text-center mt-1">
                         2026 © SKLAD
                     </div>

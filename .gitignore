@@ -29,3 +29,9 @@ dist-ssr
 *.old
 *.bak
 postcss.config.js.old
+
+# Agents
+.agents/
+
+# Development plans
+plans/

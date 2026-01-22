@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Trash2, Package, Beef, AlertCircle, Check } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { useLang } from '../../i18n';
 
 const WriteOffManager = () => {
     const { ingredients, products, addToast, logAction, updateIngredientQuantity, updateProductQuantity } = useInventoryStore();
+    const { t } = useLang();
     const [type, setType] = useState('ingredient'); // 'ingredient' or 'product'
     const [selectedId, setSelectedId] = useState('');
     const [quantity, setQuantity] = useState(1);
@@ -15,8 +17,8 @@ const WriteOffManager = () => {
 
     const validate = () => {
         const newErrors = {};
-        if (!selectedId) newErrors.selectedId = 'Выберите элемент';
-        if (quantity <= 0) newErrors.quantity = 'Количество должно быть больше 0';
+        if (!selectedId) newErrors.selectedId = t.writeoff.selectItem;
+        if (quantity <= 0) newErrors.quantity = t.writeoff.errorQty;
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -29,7 +31,7 @@ const WriteOffManager = () => {
         if (!item) return;
 
         if ((item.quantity || 0) < quantity) {
-            addToast('Недостаточно для списания', 'error');
+            addToast(t.writeoff.errorStock, 'error');
             return;
         }
 
@@ -41,8 +43,15 @@ const WriteOffManager = () => {
             await updateProductQuantity(selectedId, newQty);
         }
 
-        await logAction('Списание', `Списано ${quantity} ${item.unit || 'шт'} "${item.name}"${reason ? ` (${reason})` : ''}`);
-        addToast(`Списано: ${item.name}`, 'success');
+        const reasonStr = reason ? ` (${reason})` : '';
+        const logMsg = t.writeoff.logDesc
+            .replace('{quantity}', quantity)
+            .replace('{unit}', t.unitNames?.[item.unit] || item.unit || 'шт')
+            .replace('{name}', item.name)
+            .replace('{reason}', reasonStr);
+
+        await logAction(t.writeoff.log, logMsg);
+        addToast(t.writeoff.toastSuccess.replace('{name}', item.name), 'success');
 
         setQuantity(1);
         setReason('');
@@ -52,13 +61,13 @@ const WriteOffManager = () => {
     return (
         <div className="">
             <p className="text-[var(--text-secondary)] text-sm mb-6">
-                Спишите испорченное, просроченное или утерянное сырьё и продукцию.
+                {t.writeoff.desc}
             </p>
 
             <div className="card max-w-md">
                 <h3 className="font-bold mb-4 flex items-center gap-2">
                     <Trash2 size={20} className="text-red-500" />
-                    Списание
+                    {t.writeoff.title}
                 </h3>
 
                 <div className="space-y-4">
@@ -67,29 +76,29 @@ const WriteOffManager = () => {
                         <button
                             onClick={() => { setType('ingredient'); setSelectedId(''); setErrors({}); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border transition-all ${type === 'ingredient'
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600'
-                                : 'border-[var(--border)] hover:border-[var(--text-light)]'
+                                ? 'border-primary bg-primary/5 text-primary'
+                                : 'border-[var(--border)] hover:border-[var(--text-light)] text-[var(--text-secondary)]'
                                 }`}
                         >
                             <Beef size={18} />
-                            Сырьё
+                            {t.writeoff.materials}
                         </button>
                         <button
                             onClick={() => { setType('product'); setSelectedId(''); setErrors({}); }}
                             className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg border transition-all ${type === 'product'
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-600'
-                                : 'border-[var(--border)] hover:border-[var(--text-light)]'
+                                ? 'border-primary bg-primary/5 text-primary'
+                                : 'border-[var(--border)] hover:border-[var(--text-light)] text-[var(--text-secondary)]'
                                 }`}
                         >
                             <Package size={18} />
-                            Продукты
+                            {t.writeoff.products}
                         </button>
                     </div>
 
                     {/* Item selector */}
                     <div className="space-y-1">
                         <label className="text-sm font-medium">
-                            {type === 'ingredient' ? 'Сырьё' : 'Продукт'}
+                            {type === 'ingredient' ? t.writeoff.materials : t.writeoff.products}
                         </label>
                         <select
                             className={`input ${errors.selectedId ? 'input-error' : ''}`}
@@ -99,10 +108,10 @@ const WriteOffManager = () => {
                                 if (errors.selectedId) setErrors({ ...errors, selectedId: null });
                             }}
                         >
-                            <option value="">Выберите...</option>
+                            <option value="">{t.writeoff.selectPlaceholder}</option>
                             {items.map(item => (
                                 <option key={item.id} value={item.id}>
-                                    {item.name} (остаток: {item.quantity || 0} {item.unit})
+                                    {item.name} ({t.common.balance}: {item.quantity || 0} {t.unitNames?.[item.unit] || item.unit})
                                 </option>
                             ))}
                         </select>
@@ -111,7 +120,7 @@ const WriteOffManager = () => {
 
                     {/* Quantity */}
                     <div className="space-y-1">
-                        <label className="text-sm font-medium">Количество</label>
+                        <label className="text-sm font-medium">{t.writeoff.quantity}</label>
                         <input
                             type="number"
                             className={`input font-mono ${errors.quantity ? 'input-error' : ''}`}
@@ -125,18 +134,18 @@ const WriteOffManager = () => {
                         />
                         {selectedItem && (
                             <p className="text-xs text-[var(--text-light)]">
-                                Доступно: {selectedItem.quantity} {selectedItem.unit}
+                                {t.writeoff.available}: {selectedItem.quantity} {t.unitNames?.[selectedItem.unit] || selectedItem.unit}
                             </p>
                         )}
                     </div>
 
                     {/* Reason */}
                     <div className="space-y-1">
-                        <label className="text-sm font-medium">Причина (опционально)</label>
+                        <label className="text-sm font-medium">{t.writeoff.reason}</label>
                         <input
                             type="text"
                             className="input"
-                            placeholder="Просрочка, брак, порча..."
+                            placeholder={t.writeoff.reasonPlaceholder}
                             value={reason}
                             onChange={e => setReason(e.target.value)}
                         />
@@ -144,9 +153,9 @@ const WriteOffManager = () => {
 
                     {/* Warning if quantity exceeds stock */}
                     {selectedItem && quantity > selectedItem.quantity && (
-                        <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+                        <div className="flex items-center gap-2 text-danger text-sm bg-danger/5 p-3 rounded-lg">
                             <AlertCircle size={16} />
-                            <span>Количество превышает остаток</span>
+                            <span>{t.writeoff.errorExceeds}</span>
                         </div>
                     )}
 
@@ -157,7 +166,7 @@ const WriteOffManager = () => {
                             className="btn btn-danger w-full justify-center"
                         >
                             <Trash2 size={18} />
-                            Списать
+                            {t.writeoff.submit}
                         </button>
                     </div>
                 </div>
@@ -167,7 +176,7 @@ const WriteOffManager = () => {
                 items.length === 0 && (
                     <div className="mt-6 text-center py-8 text-[var(--text-light)]">
                         <Trash2 size={48} className="mx-auto mb-4 opacity-30" />
-                        <p>Нет {type === 'ingredient' ? 'сырья' : 'продуктов'} для списания</p>
+                        <p>{t.writeoff.empty.replace('{type}', type === 'ingredient' ? t.writeoff.materials.toLowerCase() : t.writeoff.products.toLowerCase())}</p>
                     </div>
                 )
             }

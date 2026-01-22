@@ -8,6 +8,7 @@ import ProductManager from './components/inventory/ProductManager'
 import ProductionManager from './components/production/ProductionManager'
 import WriteOffManager from './components/inventory/WriteOffManager'
 import History from './components/inventory/History'
+import LandingPage from './components/landing/LandingPage'
 
 import { useInventoryStore } from './store/inventoryStore';
 import { Loader2, RefreshCw } from 'lucide-react';
@@ -17,6 +18,7 @@ import { AuthProvider, useAuth } from './components/Auth/AuthProvider'
 import ProtectedRoute from './components/core/ProtectedRoute'
 import SetupProduction from './components/production/SetupProduction'
 import ErrorBoundary from './components/core/ErrorBoundary';
+import { LangProvider } from './i18n';
 
 const AppContent = () => {
     const { user, loading, authError } = useAuth();
@@ -63,43 +65,59 @@ const AppContent = () => {
     }
 
     return (
-        <HashRouter>
-            <Routes>
-                <Route path="/login" element={
-                    user ? <Navigate to="/" replace /> : <AuthPage />
+        <Routes>
+            {/* Auth routes */}
+            <Route path="/app/login" element={
+                user ? <Navigate to="/app" replace /> : <AuthPage />
+            } />
+
+            {/* Protected app routes */}
+            <Route path="/app/*" element={<ProtectedRoute />}>
+                <Route path="setup" element={
+                    profile ? <Navigate to="/app" replace /> : <SetupProduction />
                 } />
 
-                <Route element={<ProtectedRoute />}>
-                    <Route path="/setup" element={
-                        profile ? <Navigate to="/" replace /> : <SetupProduction />
-                    } />
-
-                    <Route path="/" element={
-                        !profile ? <Navigate to="/setup" replace /> : <Layout />
-                    }>
-                        <Route index element={<Dashboard />} />
-                        <Route path="units" element={<UnitManager />} />
-                        <Route path="ingredients" element={<IngredientManager />} />
-                        <Route path="products" element={<ProductManager />} />
-                        <Route path="production" element={<ProductionManager />} />
-                        <Route path="writeoff" element={<WriteOffManager />} />
-                        <Route path="history" element={<History />} />
-                    </Route>
+                <Route path="" element={
+                    !profile ? <Navigate to="/app/setup" replace /> : <Layout />
+                }>
+                    <Route index element={<Dashboard />} />
+                    <Route path="units" element={<UnitManager />} />
+                    <Route path="ingredients" element={<IngredientManager />} />
+                    <Route path="products" element={<ProductManager />} />
+                    <Route path="production" element={<ProductionManager />} />
+                    <Route path="writeoff" element={<WriteOffManager />} />
+                    <Route path="history" element={<History />} />
                 </Route>
+            </Route>
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </HashRouter>
+            {/* Redirect old login route to new one */}
+            <Route path="/login" element={<Navigate to="/app/login" replace />} />
+
+            {/* Catch all - redirect to app */}
+            <Route path="*" element={<Navigate to="/app" replace />} />
+        </Routes>
     );
 };
 
 function App() {
     return (
-        <ErrorBoundary>
-            <AuthProvider>
-                <AppContent />
-            </AuthProvider>
-        </ErrorBoundary>
+        <LangProvider>
+            <ErrorBoundary>
+                <HashRouter>
+                    <Routes>
+                        {/* Landing page - public, no auth needed */}
+                        <Route path="/" element={<LandingPage />} />
+
+                        {/* App routes - wrapped in AuthProvider */}
+                        <Route path="/*" element={
+                            <AuthProvider>
+                                <AppContent />
+                            </AuthProvider>
+                        } />
+                    </Routes>
+                </HashRouter>
+            </ErrorBoundary>
+        </LangProvider>
     )
 }
 

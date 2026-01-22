@@ -73,17 +73,17 @@ export const StoreProvider = ({ children }) => {
         // Check if updating existing by ID or adding new
         if (ingredient.id) {
             setIngredients(ingredients.map(i => i.id === ingredient.id ? ingredient : i));
-            logAction('Обновление', `Обновлен ингредиент: ${ingredient.name}`);
+            logAction('Обновление', `Обновлен материал: ${ingredient.name}`);
         } else {
             setIngredients([...ingredients, { ...ingredient, id: generateId() }]);
-            logAction('Создание', `Добавлен ингредиент: ${ingredient.name} (${ingredient.quantity} ${ingredient.unit})`);
+            logAction('Создание', `Добавлен материал: ${ingredient.name} (${ingredient.quantity} ${ingredient.unit})`);
         }
     };
 
     const removeIngredient = (id) => {
         const name = ingredients.find(i => i.id === id)?.name;
         setIngredients(ingredients.filter(i => i.id !== id));
-        logAction('Удаление', `Удален ингредиент: ${name}`);
+        logAction('Удаление', `Удален материал: ${name}`);
     };
 
     // Product Actions
@@ -113,12 +113,12 @@ export const StoreProvider = ({ children }) => {
             const requiredAmount = item.amount * quantity;
             const stockIngredient = ingredients.find(i => i.id === item.ingredientId);
             if (!stockIngredient || stockIngredient.quantity < requiredAmount) {
-                missing.push(stockIngredient ? stockIngredient.name : 'Неизвестный ингредиент');
+                missing.push(stockIngredient ? stockIngredient.name : 'Неизвестный материал');
             }
         });
 
         if (missing.length > 0) {
-            return { success: false, error: `Не хватает ингредиентов: ${missing.join(', ')}` };
+            return { success: false, error: `Не хватает материалов: ${missing.join(', ')}` };
         }
 
         // Deduct stock
