@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Search, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, AlertCircle, Download } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { ExportService } from '../../utils/ExportService';
 import SlideOver from '../ui/SlideOver';
 import { useLang } from '../../i18n';
 
@@ -82,9 +83,19 @@ const IngredientManager = () => {
                     <h2 className="text-xl font-bold text-[var(--text-main)]">{t.ingredients.title}</h2>
                     <p className="text-[var(--text-secondary)] text-sm">{t.ingredients.desc || 'Управляйте остатками материалов и сырья.'}</p>
                 </div>
-                <button onClick={() => openSlide()} className="btn btn-primary">
-                    <Plus size={18} /> {t.ingredients.addNew}
-                </button>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => ExportService.exportIngredients(ingredients, t)}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-page)]"
+                        title={t.common.export}
+                    >
+                        <Download size={18} />
+                        <span className="hidden sm:inline">{t.common.export}</span>
+                    </button>
+                    <button onClick={() => openSlide()} className="btn btn-primary">
+                        <Plus size={18} /> {t.ingredients.addNew}
+                    </button>
+                </div>
             </div>
 
             {/* Search */}

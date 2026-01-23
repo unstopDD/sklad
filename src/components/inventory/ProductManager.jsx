@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { ExportService } from '../../utils/ExportService';
 import SlideOver from '../ui/SlideOver';
 import { useLang } from '../../i18n';
 
@@ -106,12 +107,25 @@ const ProductManager = () => {
         <div className="">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-                <p className="text-[var(--text-secondary)] text-sm">
-                    {t.products.desc || 'Управляйте составом ваших изделий.'}
-                </p>
-                <button onClick={() => openSlide()} className="btn btn-primary">
-                    <Plus size={18} /> {t.products.addNew}
-                </button>
+                <div>
+                    <h2 className="text-xl font-bold text-[var(--text-main)]">{t.products.title}</h2>
+                    <p className="text-[var(--text-secondary)] text-sm">
+                        {t.products.desc || 'Управляйте составом ваших изделий.'}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => ExportService.exportProducts(products, t, ingredients)}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-page)]"
+                        title={t.common.export}
+                    >
+                        <Download size={18} />
+                        <span className="hidden sm:inline">{t.common.export}</span>
+                    </button>
+                    <button onClick={() => openSlide()} className="btn btn-primary">
+                        <Plus size={18} /> {t.products.addNew}
+                    </button>
+                </div>
             </div>
 
             {/* Search */}

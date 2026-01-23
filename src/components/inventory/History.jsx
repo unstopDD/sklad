@@ -1,6 +1,6 @@
-import React from 'react';
-import { Clock, Factory, Trash2, FileText } from 'lucide-react';
+import { Clock, Factory, Trash2, FileText, Download } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { ExportService } from '../../utils/ExportService';
 import { useLang } from '../../i18n';
 
 const History = () => {
@@ -63,14 +63,29 @@ const History = () => {
     return (
         <div className="">
             <div className="flex items-center justify-between mb-6">
-                <p className="text-[var(--text-secondary)] text-sm">
-                    {t.history.desc}
-                </p>
-                {history.length > 0 && (
-                    <button onClick={clearHistory} className="btn btn-secondary text-sm">
-                        <Trash2 size={16} /> {t.history.clear}
-                    </button>
-                )}
+                <div>
+                    <h2 className="text-xl font-bold text-[var(--text-main)]">{t.history.title}</h2>
+                    <p className="text-[var(--text-secondary)] text-sm">
+                        {t.history.desc}
+                    </p>
+                </div>
+                <div className="flex gap-2">
+                    {history.length > 0 && (
+                        <>
+                            <button
+                                onClick={() => ExportService.exportHistory(history, t)}
+                                className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-page)]"
+                                title={t.common.export}
+                            >
+                                <Download size={18} />
+                                <span className="hidden sm:inline">{t.common.export}</span>
+                            </button>
+                            <button onClick={clearHistory} className="btn btn-secondary text-sm">
+                                <Trash2 size={16} /> {t.history.clear}
+                            </button>
+                        </>
+                    )}
+                </div>
             </div>
 
             <div className="card p-0">

@@ -65,6 +65,31 @@ export const useInventoryStore = create((set, get) => ({
         }
     },
 
+    updateProductionName: async (newName) => {
+        const userId = get().user?.id;
+        if (!userId) return { success: false };
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ production_name: newName })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            set(state => ({
+                profile: { ...state.profile, production_name: newName }
+            }));
+
+            get().addToast('Название обновлено', 'success');
+            return { success: true };
+        } catch (e) {
+            console.error('[updateProductionName] Error:', e);
+            get().addToast('Ошибка обновления названия', 'error');
+            return { success: false };
+        }
+    },
+
     signOut: async () => {
         try {
             const { error } = await supabase.auth.signOut();

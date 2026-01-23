@@ -4,8 +4,6 @@ import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { useLang } from '../../i18n';
 
-
-
 const OnboardingCard = ({ step, title, description, linkTo, linkText, icon: Icon }) => (
     <div className="card relative overflow-hidden">
         <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full" />
@@ -71,7 +69,6 @@ const Dashboard = () => {
 
     return (
         <div className="space-y-6">
-
 
             {/* Onboarding for empty warehouse */}
             {showOnboarding && (
