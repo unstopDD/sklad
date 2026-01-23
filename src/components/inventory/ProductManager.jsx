@@ -3,7 +3,7 @@ import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download,
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import SlideOver from '../ui/SlideOver';
-import ExportDropdown from '../ui/ExportDropdown';
+import ExportModal from '../ui/ExportModal';
 import { useLang } from '../../i18n';
 
 const ProductManager = () => {
@@ -18,6 +18,7 @@ const ProductManager = () => {
         id: null, name: '', unit: 'шт', recipe: []
     });
     const [recipeItem, setRecipeItem] = useState({ ingredientId: '', amount: '' });
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const [errors, setErrors] = useState({});
     const [isAddingRecipeItem, setIsAddingRecipeItem] = useState(false);
     const [editingRecipeIndex, setEditingRecipeIndex] = useState(null);
@@ -115,10 +116,14 @@ const ProductManager = () => {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <ExportDropdown
-                        onExport={(format) => ExportService.exportProducts(products, t, ingredients, format)}
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                         title={t.common.export}
-                    />
+                    >
+                        <Download size={18} className="text-[var(--primary)]" />
+                        <span className="font-bold hidden sm:inline">{t.common.export}</span>
+                    </button>
                     <button onClick={() => openSlide()} className="btn btn-primary">
                         <Plus size={18} /> {t.products.addNew}
                     </button>
@@ -461,6 +466,12 @@ const ProductManager = () => {
                     </div>
                 </form>
             </SlideOver>
+            {/* Export Format Modal */}
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                onExport={(format) => ExportService.exportProducts(products, t, ingredients, format)}
+            />
         </div>
     );
 };

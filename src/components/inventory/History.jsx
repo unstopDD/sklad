@@ -1,12 +1,13 @@
 import { Clock, Factory, Trash2, FileText, Download, FileSpreadsheet } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
-import ExportDropdown from '../ui/ExportDropdown';
+import ExportModal from '../ui/ExportModal';
 import { useLang } from '../../i18n';
 
 const History = () => {
     const { history, clearHistory } = useInventoryStore();
     const { t, currentLang } = useLang();
+    const [isExportModalOpen, setIsExportModalOpen] = React.useState(false);
 
     const getTranslatedType = (type) => {
         switch (type) {
@@ -73,10 +74,14 @@ const History = () => {
                 <div className="flex gap-2">
                     {history.length > 0 && (
                         <>
-                            <ExportDropdown
-                                onExport={(format) => ExportService.exportHistory(history, t, format)}
+                            <button
+                                onClick={() => setIsExportModalOpen(true)}
+                                className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                                 title={t.common.export}
-                            />
+                            >
+                                <Download size={18} className="text-[var(--primary)]" />
+                                <span className="font-bold hidden sm:inline">{t.common.export}</span>
+                            </button>
                             <button onClick={clearHistory} className="btn btn-secondary text-sm">
                                 <Trash2 size={16} /> {t.history.clear}
                             </button>
@@ -144,6 +149,12 @@ const History = () => {
                     </table>
                 </div>
             </div>
+            {/* Export Format Modal */}
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                onExport={(format) => ExportService.exportHistory(history, t, format)}
+            />
         </div>
     );
 };

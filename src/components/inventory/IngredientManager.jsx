@@ -4,7 +4,7 @@ import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
-import ExportDropdown from '../ui/ExportDropdown';
+import ExportModal from '../ui/ExportModal';
 import { useLang } from '../../i18n';
 
 const IngredientManager = () => {
@@ -14,6 +14,7 @@ const IngredientManager = () => {
     const [filter, setFilter] = useState('');
     const [editingQty, setEditingQty] = useState(null);
     const [importPreview, setImportPreview] = useState(null);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const fileInputRef = React.useRef(null);
 
     // Form State
@@ -140,10 +141,14 @@ const IngredientManager = () => {
                         <Upload size={18} className="text-[var(--primary)]" />
                         <span className="hidden sm:inline">{t.common.import}</span>
                     </button>
-                    <ExportDropdown
-                        onExport={(format) => ExportService.exportIngredients(ingredients, t, format)}
+                    <button
+                        onClick={() => setIsExportModalOpen(true)}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                         title={t.common.export}
-                    />
+                    >
+                        <Download size={18} className="text-[var(--primary)]" />
+                        <span className="font-bold hidden sm:inline">{t.common.export}</span>
+                    </button>
                     <button onClick={() => openSlide()} className="btn btn-primary">
                         <Plus size={18} /> {t.ingredients.addNew}
                     </button>
@@ -387,6 +392,13 @@ const IngredientManager = () => {
                     </div>
                 </div>
             )}
+
+            {/* Export Format Modal */}
+            <ExportModal
+                isOpen={isExportModalOpen}
+                onClose={() => setIsExportModalOpen(false)}
+                onExport={(format) => ExportService.exportIngredients(ingredients, t, format)}
+            />
         </div>
     );
 };
