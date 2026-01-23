@@ -116,11 +116,11 @@ const ProductManager = () => {
                 <div className="flex gap-2">
                     <button
                         onClick={() => ExportService.exportProducts(products, t, ingredients)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border border-[var(--border)] hover:bg-[var(--bg-page)]"
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                         title={t.common.export}
                     >
-                        <Download size={18} />
-                        <span className="hidden sm:inline">{t.common.export}</span>
+                        <Download size={18} className="text-[var(--primary)]" />
+                        <span className="font-bold">{t.common.export}</span>
                     </button>
                     <button onClick={() => openSlide()} className="btn btn-primary">
                         <Plus size={18} /> {t.products.addNew}
