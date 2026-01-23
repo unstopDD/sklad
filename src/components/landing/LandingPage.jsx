@@ -631,16 +631,6 @@ const Footer = () => {
 
 // Main Landing Page Component
 const LandingPageContent = () => {
-    // Detect OAuth callback and redirect to app
-    useEffect(() => {
-        const hash = window.location.hash;
-        // Check if URL contains OAuth tokens (Supabase redirects with #access_token or #error)
-        if (hash.includes('access_token') || hash.includes('error') || hash.includes('type=recovery')) {
-            // Redirect to /app where AuthProvider can process the tokens
-            window.location.hash = '/app';
-        }
-    }, []);
-
     return (
         <div className="min-h-screen bg-slate-900">
             <Navigation />
