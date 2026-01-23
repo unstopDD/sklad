@@ -13,25 +13,39 @@ export const ExportService = {
         try {
             // 1. Create worksheet
             let ws;
+            let finalData;
+
             if (headers) {
                 // If custom headers provided, map data to match headers
-                const mappedData = data.map(item => {
+                finalData = data.map(item => {
                     const mappedItem = {};
                     Object.keys(headers).forEach(key => {
                         mappedItem[headers[key]] = item[key];
                     });
                     return mappedItem;
                 });
-                ws = XLSX.utils.json_to_sheet(mappedData);
+                ws = XLSX.utils.json_to_sheet(finalData);
             } else {
-                ws = XLSX.utils.json_to_sheet(data);
+                finalData = data;
+                ws = XLSX.utils.json_to_sheet(finalData);
             }
 
-            // 2. Create workbook
+            // 2. Set Column Widths (Auto-fit)
+            const colWidths = Object.keys(finalData[0] || {}).map(key => {
+                // Find longest string in this column
+                const maxLen = Math.max(
+                    key.toString().length, // Header length
+                    ...finalData.map(row => (row[key] || '').toString().length) // Data length
+                );
+                return { wch: maxLen + 2 }; // Add small padding
+            });
+            ws['!cols'] = colWidths;
+
+            // 3. Create workbook
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-            // 3. Write file and trigger download
+            // 4. Write file and trigger download
             XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
 
             return true;
