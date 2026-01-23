@@ -9,7 +9,7 @@ export const ExportService = {
      * @param {Array} data - Array of objects to export
      * @param {Object} options - Export options (filename, sheetName, headers)
      */
-    exportToExcel: (data, { filename = 'export', sheetName = 'Sheet1', headers = null }) => {
+    exportToExcel: (data, { filename = 'export', sheetName = 'Sheet1', headers = null, format = 'xlsx' }) => {
         try {
             // 1. Create worksheet
             let ws;
@@ -30,23 +30,27 @@ export const ExportService = {
                 ws = XLSX.utils.json_to_sheet(finalData);
             }
 
-            // 2. Set Column Widths (Auto-fit)
-            const colWidths = Object.keys(finalData[0] || {}).map(key => {
-                // Find longest string in this column
-                const maxLen = Math.max(
-                    key.toString().length, // Header length
-                    ...finalData.map(row => (row[key] || '').toString().length) // Data length
-                );
-                return { wch: maxLen + 2 }; // Add small padding
-            });
-            ws['!cols'] = colWidths;
+            // 2. Set Column Widths (Auto-fit only for original Excel)
+            if (format === 'xlsx') {
+                const colWidths = Object.keys(finalData[0] || {}).map(key => {
+                    const maxLen = Math.max(
+                        key.toString().length,
+                        ...finalData.map(row => (row[key] || '').toString().length)
+                    );
+                    return { wch: maxLen + 2 };
+                });
+                ws['!cols'] = colWidths;
+            }
 
             // 3. Create workbook
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
             // 4. Write file and trigger download
-            XLSX.writeFile(wb, `${filename}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            const bookType = format === 'csv' ? 'csv' : 'xlsx';
+            const fileNameWithExt = `${filename}_${new Date().toISOString().split('T')[0]}.${format}`;
+
+            XLSX.writeFile(wb, fileNameWithExt, { bookType });
 
             return true;
         } catch (error) {
@@ -58,7 +62,7 @@ export const ExportService = {
     /**
      * Specialized export for Ingredients
      */
-    exportIngredients: (ingredients, t) => {
+    exportIngredients: (ingredients, t, format = 'xlsx') => {
         const headers = {
             name: t.ingredients.name,
             quantity: t.ingredients.quantity,
@@ -78,14 +82,15 @@ export const ExportService = {
         return ExportService.exportToExcel(data, {
             filename: `Materials_${t.profile?.production_name || 'Production'}`,
             sheetName: t.ingredients.title,
-            headers
+            headers,
+            format
         });
     },
 
     /**
      * Specialized export for Products
      */
-    exportProducts: (products, t, ingredients) => {
+    exportProducts: (products, t, ingredients, format = 'xlsx') => {
         const headers = {
             name: t.products.name,
             quantity: t.products.quantity,
@@ -110,14 +115,15 @@ export const ExportService = {
         return ExportService.exportToExcel(data, {
             filename: `Products_${t.profile?.production_name || 'Production'}`,
             sheetName: t.products.title,
-            headers
+            headers,
+            format
         });
     },
 
     /**
      * Specialized export for History
      */
-    exportHistory: (history, t) => {
+    exportHistory: (history, t, format = 'xlsx') => {
         const headers = {
             date: t.history.date || 'Дата',
             type: t.history.type || 'Тип',
@@ -133,7 +139,8 @@ export const ExportService = {
         return ExportService.exportToExcel(data, {
             filename: `History_${t.profile?.production_name || 'Production'}`,
             sheetName: t.history.title,
-            headers
+            headers,
+            format
         });
     }
 };

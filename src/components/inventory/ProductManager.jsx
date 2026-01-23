@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download, FileSpreadsheet, FileText } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import SlideOver from '../ui/SlideOver';
+import ExportDropdown from '../ui/ExportDropdown';
 import { useLang } from '../../i18n';
 
 const ProductManager = () => {
@@ -114,14 +115,10 @@ const ProductManager = () => {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <button
-                        onClick={() => ExportService.exportProducts(products, t, ingredients)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
+                    <ExportDropdown
+                        onExport={(format) => ExportService.exportProducts(products, t, ingredients, format)}
                         title={t.common.export}
-                    >
-                        <Download size={18} className="text-[var(--primary)]" />
-                        <span className="font-bold">{t.common.export}</span>
-                    </button>
+                    />
                     <button onClick={() => openSlide()} className="btn btn-primary">
                         <Plus size={18} /> {t.products.addNew}
                     </button>

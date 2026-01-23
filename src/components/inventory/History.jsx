@@ -1,6 +1,7 @@
-import { Clock, Factory, Trash2, FileText, Download } from 'lucide-react';
+import { Clock, Factory, Trash2, FileText, Download, FileSpreadsheet } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
+import ExportDropdown from '../ui/ExportDropdown';
 import { useLang } from '../../i18n';
 
 const History = () => {
@@ -72,14 +73,10 @@ const History = () => {
                 <div className="flex gap-2">
                     {history.length > 0 && (
                         <>
-                            <button
-                                onClick={() => ExportService.exportHistory(history, t)}
-                                className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
+                            <ExportDropdown
+                                onExport={(format) => ExportService.exportHistory(history, t, format)}
                                 title={t.common.export}
-                            >
-                                <Download size={18} className="text-[var(--primary)]" />
-                                <span className="font-bold">{t.common.export}</span>
-                            </button>
+                            />
                             <button onClick={clearHistory} className="btn btn-secondary text-sm">
                                 <Trash2 size={16} /> {t.history.clear}
                             </button>

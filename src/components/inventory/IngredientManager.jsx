@@ -4,6 +4,7 @@ import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
+import ExportDropdown from '../ui/ExportDropdown';
 import { useLang } from '../../i18n';
 
 const IngredientManager = () => {
@@ -139,14 +140,10 @@ const IngredientManager = () => {
                         <Upload size={18} className="text-[var(--primary)]" />
                         <span className="hidden sm:inline">{t.common.import}</span>
                     </button>
-                    <button
-                        onClick={() => ExportService.exportIngredients(ingredients, t)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
+                    <ExportDropdown
+                        onExport={(format) => ExportService.exportIngredients(ingredients, t, format)}
                         title={t.common.export}
-                    >
-                        <Download size={18} className="text-[var(--primary)]" />
-                        <span className="font-bold">{t.common.export}</span>
-                    </button>
+                    />
                     <button onClick={() => openSlide()} className="btn btn-primary">
                         <Plus size={18} /> {t.ingredients.addNew}
                     </button>
