@@ -5,6 +5,7 @@ import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
 import ExportModal from '../ui/ExportModal';
+import ImportGuideModal from '../ui/ImportGuideModal';
 import { useLang } from '../../i18n';
 
 const IngredientManager = () => {
@@ -20,6 +21,7 @@ const IngredientManager = () => {
     // Form State
     const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '' });
     const [errors, setErrors] = useState({});
+    const [isImportGuideOpen, setIsImportGuideOpen] = useState(false);
 
     const validate = () => {
         const newErrors = {};
@@ -103,8 +105,8 @@ const IngredientManager = () => {
             else skipped++;
         }
 
-        const msg = t.ingredients.importSuccess.replace('{count}', added.toString());
-        const extra = skipped > 0 ? ` (${skipped} пропущено)` : '';
+        const msg = (t.ingredients.importSuccess || 'Імпортовано {count} записів').replace('{count}', added.toString());
+        const extra = skipped > 0 ? ` (${skipped} ${t.common.skipped || 'пропущено'})` : '';
         addToast(msg + extra, added > 0 ? 'success' : 'info');
         setImportPreview(null);
     };
@@ -145,7 +147,7 @@ const IngredientManager = () => {
                         className="hidden"
                     />
                     <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setIsImportGuideOpen(true)}
                         className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                         title={t.common.import}
                     >
@@ -409,6 +411,19 @@ const IngredientManager = () => {
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}
                 onExport={(format) => ExportService.exportIngredients(ingredients, t, format)}
+            />
+
+            {/* Import Guide Modal */}
+            <ImportGuideModal
+                isOpen={isImportGuideOpen}
+                onClose={() => setIsImportGuideOpen(false)}
+                type="materials"
+                t={t}
+                onDownloadTemplate={() => ExportService.downloadTemplate('materials', t)}
+                onProceed={() => {
+                    setIsImportGuideOpen(false);
+                    fileInputRef.current?.click();
+                }}
             />
         </div>
     );

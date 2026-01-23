@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Clock, Factory, Trash2, FileText, Download, FileSpreadsheet } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
@@ -7,7 +8,7 @@ import { useLang } from '../../i18n';
 const History = () => {
     const { history, clearHistory } = useInventoryStore();
     const { t, currentLang } = useLang();
-    const [isExportModalOpen, setIsExportModalOpen] = React.useState(false);
+    const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
     const getTranslatedType = (type) => {
         switch (type) {

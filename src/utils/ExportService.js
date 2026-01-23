@@ -168,13 +168,29 @@ export const ExportService = {
             filename = 'Template_Products';
         }
 
-        // Single sample row to show format
-        const data = [Object.keys(headers).reduce((acc, key) => ({ ...acc, [key]: '' }), {})];
+        // Sample row with real-looking data
+        const data = [];
+        if (type === 'materials') {
+            data.push({
+                [headers.name]: t.ingredients.sampleName,
+                [headers.quantity]: 100,
+                [headers.unit]: t.ingredients.sampleUnit,
+                [headers.minStock]: 10
+            });
+        } else {
+            data.push({
+                [headers.name]: t.products.sampleName,
+                [headers.quantity]: 50,
+                [headers.unit]: t.products.sampleUnit,
+                [headers.recipe]: t.products.sampleRecipe
+            });
+        }
 
         return ExportService.exportToExcel(data, {
             filename,
             sheetName: 'Template',
-            headers
+            headers: null, // Data is already mapped
+            format
         });
     }
 };

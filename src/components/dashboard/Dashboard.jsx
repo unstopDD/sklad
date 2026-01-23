@@ -3,6 +3,9 @@ import { Package, Beef, Plus, ArrowRight, Sparkles, TrendingDown, CheckCircle } 
 import { Link } from 'react-router-dom';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { useLang } from '../../i18n';
+import StatsCards from './StatsCards';
+import InventoryPieChart from './InventoryPieChart';
+import ProductionAreaChart from './ProductionAreaChart';
 
 const OnboardingCard = ({ step, title, description, linkTo, linkText, icon: Icon }) => (
     <div className="card relative overflow-hidden">
@@ -56,15 +59,52 @@ const Dashboard = () => {
     // Show onboarding until ALL steps are at least partially touched
     const showOnboarding = !hasIngredients || !hasProducts || !hasProduction;
 
-    // Top 5 LOW stock ingredients (sorted by quantity ascending)
+    // Filter items by activity (used in history in last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const activeItemNames = new Set(
+        history
+            .filter(h => new Date(h.date) >= thirtyDaysAgo)
+            .map(h => {
+                // Extract item name from double quotes if present, else use whole description
+                const match = h.description.match(/"([^"]+)"/);
+                return match ? match[1] : h.description;
+            })
+    );
+
+    // Filter and sort LOW stock items
     const lowIngredients = [...ingredients]
-        .sort((a, b) => a.quantity - b.quantity)
+        .filter(i => {
+            const quantity = Number(i.quantity) || 0;
+            const minStock = Number(i.minStock !== undefined ? i.minStock : i.min_stock) || 0;
+
+            const isLow = quantity <= minStock;
+
+            // Item is active if its name appears in recent history descriptions
+            const isActive = Array.from(activeItemNames).some(historyText =>
+                historyText.includes(i.name)
+            );
+
+            // Show if it's really low (or zero) AND was active recently
+            // Or always show if it's exactly 0 (critical)
+            return isLow && (isActive || quantity === 0);
+        })
+        .sort((a, b) => Number(a.quantity) - Number(b.quantity))
         .slice(0, 5);
 
-    // Top 5 LOW stock products (sorted by quantity ascending)
     const lowProducts = [...products]
-        .filter(p => p.quantity !== undefined)
-        .sort((a, b) => (a.quantity || 0) - (b.quantity || 0))
+        .filter(p => {
+            const quantity = Number(p.quantity) || 0;
+            const isLow = quantity <= 0; // Products mostly don't have minStock logic yet
+
+            const isActive = Array.from(activeItemNames).some(historyText =>
+                historyText.includes(p.name)
+            );
+
+            return isLow && isActive;
+        })
+        .sort((a, b) => (Number(a.quantity) || 0) - (Number(b.quantity) || 0))
         .slice(0, 5);
 
     return (
@@ -109,6 +149,21 @@ const Dashboard = () => {
                 </div>
             )}
 
+            {/* Global Stats */}
+            <StatsCards ingredients={ingredients} products={products} history={history} t={t} />
+
+            {/* Charts Section */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="card">
+                    <h3 className="font-bold mb-4 text-[var(--text-main)]">{t.dashboard.stockDistribution}</h3>
+                    <InventoryPieChart ingredients={ingredients} t={t} />
+                </div>
+                <div className="card">
+                    <h3 className="font-bold mb-4 text-[var(--text-main)]">{t.dashboard.productionTrends}</h3>
+                    <ProductionAreaChart history={history} t={t} />
+                </div>
+            </div>
+
             {/* Low Stock Widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8"> {/* Increased gap */}
                 {/* Low Stock Ingredients */}
@@ -142,6 +197,9 @@ const Dashboard = () => {
                             <p className="font-medium">{t.common.allInStock}</p>
                         </div>
                     )}
+                    <p className="text-[10px] text-[var(--text-light)] mt-4 italic">
+                        * {t.dashboard.activeLast30Days}
+                    </p>
                 </div>
 
                 {/* Low Stock Products */}
@@ -176,6 +234,9 @@ const Dashboard = () => {
                             </p>
                         </div>
                     )}
+                    <p className="text-[10px] text-[var(--text-light)] mt-4 italic">
+                        * {t.dashboard.activeLast30Days}
+                    </p>
                 </div>
             </div>
 

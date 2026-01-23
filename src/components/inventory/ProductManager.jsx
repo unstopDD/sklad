@@ -5,6 +5,7 @@ import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
 import ExportModal from '../ui/ExportModal';
+import ImportGuideModal from '../ui/ImportGuideModal';
 import { useLang } from '../../i18n';
 
 const ProductManager = () => {
@@ -22,6 +23,7 @@ const ProductManager = () => {
     });
     const [recipeItem, setRecipeItem] = useState({ ingredientId: '', amount: '' });
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isImportGuideOpen, setIsImportGuideOpen] = useState(false);
     const [errors, setErrors] = useState({});
     const [isAddingRecipeItem, setIsAddingRecipeItem] = useState(false);
     const [editingRecipeIndex, setEditingRecipeIndex] = useState(null);
@@ -94,14 +96,14 @@ const ProductManager = () => {
         const result = await addProduct({ ...formData, name: formData.name.trim() });
 
         if (result.success) {
-            addToast(formData.id ? 'Продукт обновлён' : 'Продукт создан', 'success');
+            addToast(formData.id ? t.products.editSuccess || 'Продукт оновлено' : t.products.addSuccess || 'Продукт створено', 'success');
             setIsSlideOpen(false);
         }
     };
 
     const handleDelete = (id) => {
         removeProduct(id);
-        addToast('Продукт удалён', 'success');
+        addToast(t.products.deleteSuccess || 'Продукт видалено', 'success');
     };
 
     const handleFileChange = async (e) => {
@@ -164,8 +166,8 @@ const ProductManager = () => {
             else skipped++;
         }
 
-        const msg = (t.products.importSuccess || 'Импортировано {count} записей').replace('{count}', added.toString());
-        const extra = skipped > 0 ? ` (${skipped} пропущено)` : '';
+        const msg = (t.products.importSuccess || 'Імпортовано {count} записів').replace('{count}', added.toString());
+        const extra = skipped > 0 ? ` (${skipped} ${t.common.skipped || 'пропущено'})` : '';
         addToast(msg + extra, added > 0 ? 'success' : 'info');
         setImportPreview(null);
     };
@@ -204,7 +206,7 @@ const ProductManager = () => {
                         className="hidden"
                     />
                     <button
-                        onClick={() => fileInputRef.current?.click()}
+                        onClick={() => setIsImportGuideOpen(true)}
                         className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
                         title={t.common.import}
                     >
@@ -580,7 +582,7 @@ const ProductManager = () => {
                             <div className="flex gap-2 items-center">
                                 <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
                                     <AlertCircle size={14} />
-                                    <span>Формат состава: "Название: Количество, ..."</span>
+                                    <span>{t.products.importFormatTip || (t.lang === 'uk' ? 'Формат складу: "Назва: Кількість, ..."' : 'Формат состава: "Название: Количество, ..."')}</span>
                                 </div>
                                 <button onClick={() => setImportPreview(null)} className="p-2 hover:bg-[var(--bg-page)] rounded-lg text-[var(--text-secondary)]">
                                     <X size={20} />
@@ -639,6 +641,19 @@ const ProductManager = () => {
                     </div>
                 </div>
             )}
+
+            {/* Import Guide Modal */}
+            <ImportGuideModal
+                isOpen={isImportGuideOpen}
+                onClose={() => setIsImportGuideOpen(false)}
+                type="products"
+                t={t}
+                onDownloadTemplate={() => ExportService.downloadTemplate('products', t)}
+                onProceed={() => {
+                    setIsImportGuideOpen(false);
+                    fileInputRef.current?.click();
+                }}
+            />
         </div>
     );
 };
