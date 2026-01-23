@@ -199,7 +199,7 @@ const IngredientManager = () => {
                         <input
                             id="ingredient-name"
                             className={`input ${errors.name ? 'input-error' : ''}`}
-                            placeholder="Например: Материал А, Компонент Б..."
+                            placeholder={t.ingredients.namePlaceholder || "Например: Материал А, Компонент Б..."}
                             value={formData.name}
                             onChange={e => {
                                 setFormData({ ...formData, name: e.target.value });

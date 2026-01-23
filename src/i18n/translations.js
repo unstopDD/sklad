@@ -29,6 +29,14 @@ export const appTranslations = {
             products: 'Продукція',
             low: 'Мало',
         },
+        settings: {
+            title: 'Налаштування',
+            productionName: 'Назва виробництва',
+            changeName: 'Змінити назву',
+            placeholderName: 'Введіть назву вашого виробництва',
+            productionLabel: 'Виробництво',
+            setLabel: 'Назвати...',
+        },
         theme: {
             light: 'Світла тема',
             dark: 'Темна тема',
@@ -86,6 +94,7 @@ export const appTranslations = {
             emptyDesc: 'Додайте матеріали, з яких будете виробляти продукцію.',
             quantityHint: 'Використовуйте для початкового введення або інвентаризації.',
             searchPlaceholder: 'Пошук матеріалів...',
+            namePlaceholder: 'Наприклад: Матеріал А, Компонент Б...',
         },
         products: {
             title: 'Продукція',
@@ -107,6 +116,12 @@ export const appTranslations = {
             fromComposition: 'зі складу',
             lowStock: 'Мало на складі (Продукція)',
             searchPlaceholder: 'Пошук продукції...',
+            recipeEmptyTitle: 'Склад продукту порожній',
+            recipeEmptyDesc: 'Додайте сировину, з якої виготовляється цей продукт',
+            selectIngredient: 'Оберіть сировину',
+            consumption: 'Витрата',
+            unitLabel: 'Од. вим.',
+            notSelected: 'Не обрано...',
         },
         production: {
             desc: 'Виберіть продукт для виробництва. Компоненти будуть автоматично списані зі складу.',
@@ -219,6 +234,14 @@ export const appTranslations = {
             products: 'Продукция',
             low: 'Мало',
         },
+        settings: {
+            title: 'Настройки',
+            productionName: 'Название производства',
+            changeName: 'Изменить название',
+            placeholderName: 'Введите название вашего производства',
+            productionLabel: 'Производство',
+            setLabel: 'Назвать...',
+        },
         theme: {
             light: 'Светлая тема',
             dark: 'Тёмная тема',
@@ -276,6 +299,7 @@ export const appTranslations = {
             emptyDesc: 'Добавьте материалы, из которых будете производить продукцию.',
             quantityHint: 'Используйте для начального ввода или инвентаризации.',
             searchPlaceholder: 'Поиск материалов...',
+            namePlaceholder: 'Например: Материал А, Компонент Б...',
         },
         products: {
             title: 'Продукция',
@@ -297,6 +321,12 @@ export const appTranslations = {
             fromComposition: 'из состава',
             lowStock: 'Мало на складе (Продукция)',
             searchPlaceholder: 'Поиск продукции...',
+            recipeEmptyTitle: 'Состав продукта пуст',
+            recipeEmptyDesc: 'Добавьте сырье, из которого производится этот продукт',
+            selectIngredient: 'Выберите сырье',
+            consumption: 'Расход',
+            unitLabel: 'Ед. изм.',
+            notSelected: 'Не выбрано...',
         },
         production: {
             desc: 'Выберите продукт для производства. Компоненты будут автоматически списаны со склада.',
@@ -409,6 +439,14 @@ export const appTranslations = {
             products: 'Products',
             low: 'Low',
         },
+        settings: {
+            title: 'Settings',
+            productionName: 'Production Name',
+            changeName: 'Change Name',
+            placeholderName: 'Enter your production name',
+            productionLabel: 'Production',
+            setLabel: 'Set name...',
+        },
         theme: {
             light: 'Light mode',
             dark: 'Dark mode',
@@ -466,6 +504,7 @@ export const appTranslations = {
             emptyDesc: 'Add materials to start production.',
             quantityHint: 'Use for initial entry or inventory.',
             searchPlaceholder: 'Search materials...',
+            namePlaceholder: 'e.g., Material A, Component B...',
         },
         products: {
             title: 'Products',
@@ -487,6 +526,12 @@ export const appTranslations = {
             fromComposition: 'from composition',
             lowStock: 'Low Stock (Products)',
             searchPlaceholder: 'Search products...',
+            recipeEmptyTitle: 'Product composition is empty',
+            recipeEmptyDesc: 'Add raw materials used to produce this product',
+            selectIngredient: 'Select material',
+            consumption: 'Consumption',
+            unitLabel: 'Unit',
+            notSelected: 'Not selected...',
         },
         production: {
             desc: 'Select a product for production. Components will be automatically deducted from stock.',

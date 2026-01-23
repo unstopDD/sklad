@@ -1,9 +1,76 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2, Globe } from 'lucide-react';
+import { LayoutDashboard, Scale, Beef, Package, Factory, Clock, Menu, X, Trash2, Sun, Moon, AlertTriangle, Loader2, Globe, Edit2, Check } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import Toast from '../ui/Toast';
 import { useLang, LanguageSelector } from '../../i18n';
+
+// Modal for editing production name
+const EditProductionModal = ({ isOpen, onClose, currentName }) => {
+    const { updateProductionName } = useInventoryStore();
+    const { t } = useLang();
+    const [newName, setNewName] = useState(currentName || '');
+
+    useEffect(() => {
+        if (isOpen) setNewName(currentName || '');
+    }, [isOpen, currentName]);
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        if (newName.trim()) {
+            const success = await updateProductionName(newName.trim());
+            if (success) onClose();
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        {t.settings.changeName || 'Изменить название'}
+                    </h3>
+                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSave} className="space-y-4">
+                    <div>
+                        <input
+                            type="text"
+                            value={newName}
+                            onChange={(e) => setNewName(e.target.value)}
+                            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                            placeholder={t.settings.placeholderName || 'Введите название'}
+                            autoFocus
+                        />
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                            {t.common.cancel || 'Отмена'}
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={!newName.trim()}
+                            className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                        >
+                            <Check size={16} />
+                            {t.common.save || 'Сохранить'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 const NavItem = ({ to, icon: Icon, label, onClick, end = false }) => (
     <NavLink
@@ -22,6 +89,7 @@ const NavItem = ({ to, icon: Icon, label, onClick, end = false }) => (
     </NavLink>
 );
 
+// ... StatsWidget and ThemeToggle ...
 const StatsWidget = () => {
     const { ingredients, products } = useInventoryStore();
     const { t } = useLang();
@@ -69,24 +137,55 @@ const ThemeToggle = () => {
 
 const Logo = () => (
     <Link to="/app" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-        <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-black shadow-lg">
+        <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center text-white dark:text-black shadow-lg shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
                 <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
                 <line x1="12" y1="22.08" x2="12" y2="12"></line>
             </svg>
         </div>
-        <span className="font-extrabold text-xl tracking-tight text-black dark:text-white">SKLAD</span>
+        <span className="font-extrabold text-xl tracking-tight text-black dark:text-white truncate">
+            SKLAD
+        </span>
     </Link>
 );
 
+const ProductionBrand = ({ name, onEdit }) => {
+    const { t } = useLang();
+    return (
+        <div className="mx-4 mt-4 mb-1 p-3 bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-100 dark:border-gray-700/50 group flex items-center justify-between transition-colors hover:border-blue-200 dark:hover:border-blue-800">
+            <div className="min-w-0 flex-1 mr-2">
+                <div className="text-[10px] uppercase tracking-wider font-semibold text-gray-400 mb-0.5">
+                    {t.settings.productionLabel || 'Производство'}
+                </div>
+                <div className="font-bold text-sm text-gray-900 dark:text-white truncate" title={name}>
+                    {name || t.settings.setLabel || 'Назвать...'}
+                </div>
+            </div>
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    onEdit();
+                }}
+                className="p-1.5 text-gray-400 hover:text-blue-500 hover:bg-white dark:hover:bg-gray-700 rounded-md transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 shrink-0"
+                title={t.settings.changeName || "Изменить название"}
+            >
+                <Edit2 size={14} />
+            </button>
+        </div>
+    );
+};
+
 const Layout = () => {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isEditingName, setIsEditingName] = useState(false);
     const [isSigningOut, setIsSigningOut] = useState(false);
     const sidebarRef = useRef(null);
     const location = useLocation();
     const { darkMode, user, signOut, profile } = useInventoryStore();
     const { t } = useLang();
+
+    const productionName = profile?.production_name;
 
     useEffect(() => {
         if (darkMode) {
@@ -104,19 +203,24 @@ const Layout = () => {
     const getPageTitle = () => {
         switch (location.pathname) {
             case '/app':
-            case '/app/': return profile?.production_name || t.nav.home;
+            case '/app/': return productionName || t.nav.home;
             case '/app/units': return t.nav.units;
             case '/app/ingredients': return t.ingredients.title;
             case '/app/products': return t.products.title;
             case '/app/production': return t.nav.production;
             case '/app/writeoff': return t.nav.writeoff;
             case '/app/history': return t.nav.history;
-            default: return 'SKLAD';
+            default: return productionName || 'SKLAD';
         }
     };
 
     return (
         <div className={`flex min-h-screen ${darkMode ? 'dark bg-black text-white' : 'bg-white text-black'}`}>
+            <EditProductionModal
+                isOpen={isEditingName}
+                onClose={() => setIsEditingName(false)}
+                currentName={productionName}
+            />
             {/* Skip Link for Accessibility */}
             <a
                 href="#main-content"
@@ -135,7 +239,9 @@ const Layout = () => {
                     <Logo />
                 </div>
 
-                <nav className="flex-1 p-4 space-y-1 overflow-y-auto flex flex-col" aria-label="Главное меню">
+                <ProductionBrand name={productionName} onEdit={() => setIsEditingName(true)} />
+
+                <nav className="flex-1 p-4 pt-2 space-y-1 overflow-y-auto flex flex-col" aria-label="Главное меню">
                     <div className="space-y-2">
                         <NavItem to="/app" icon={LayoutDashboard} label={t.nav.home} onClick={() => setIsMobileMenuOpen(false)} end />
                         <NavItem to="/app/ingredients" icon={Beef} label={t.nav.ingredients} onClick={() => setIsMobileMenuOpen(false)} />

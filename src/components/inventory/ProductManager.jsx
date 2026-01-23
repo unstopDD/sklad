@@ -227,7 +227,7 @@ const ProductManager = () => {
                     </div>
 
                     <div>
-                        <label htmlFor="product-unit" className="block text-sm font-medium mb-2 text-[var(--text-main)]">Единица измерения</label>
+                        <label htmlFor="product-unit" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.common.unitLabel || t.ingredients.unit || 'Единица измерения'}</label>
                         <div className="relative">
                             <select
                                 id="product-unit"
@@ -258,10 +258,10 @@ const ProductManager = () => {
                                         <div className="text-blue-600 dark:text-blue-400 text-xl">💡</div>
                                     </div>
                                     <p className="text-sm font-medium text-[var(--text-secondary)]">
-                                        Состав продукта пуст
+                                        {t.products.recipeEmptyTitle || 'Состав продукта пуст'}
                                     </p>
                                     <p className="text-xs text-[var(--text-light)]">
-                                        Добавьте сырье, из которого производится этот продукт
+                                        {t.products.recipeEmptyDesc || 'Добавьте сырье, из которого производится этот продукт'}
                                     </p>
                                 </div>
                                 <button
@@ -277,9 +277,9 @@ const ProductManager = () => {
                         {formData.recipe.length > 0 && (
                             <div className="space-y-3">
                                 <div className="grid grid-cols-12 gap-3 text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] px-3 pb-1 border-b border-[var(--border)]">
-                                    <div className="col-span-6">Название</div>
-                                    <div className="col-span-3">Кол-во</div>
-                                    <div className="col-span-3 text-right">Действия</div>
+                                    <div className="col-span-6">{t.ingredients.name || 'Название'}</div>
+                                    <div className="col-span-3">{t.ingredients.quantity || 'Кол-во'}</div>
+                                    <div className="col-span-3 text-right">{t.common.action || 'Действия'}</div>
                                 </div>
                                 <div className="space-y-2">
                                     {formData.recipe.map((item, idx) => (
@@ -372,7 +372,7 @@ const ProductManager = () => {
                             <div className="bg-[var(--bg-card)] p-4 rounded-xl border-2 border-[var(--primary)] shadow-lg space-y-4 animate-in fade-in zoom-in-95 duration-200">
                                 <div className="space-y-4">
                                     <div>
-                                        <label htmlFor="recipe-ingredient" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Выберите сырье</label>
+                                        <label htmlFor="recipe-ingredient" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">{t.products.selectIngredient || 'Выберите сырье'}</label>
                                         <div className="relative">
                                             <select
                                                 id="recipe-ingredient"
@@ -381,7 +381,7 @@ const ProductManager = () => {
                                                 onChange={e => setRecipeItem({ ...recipeItem, ingredientId: e.target.value })}
                                                 autoFocus
                                             >
-                                                <option value="">Не выбрано...</option>
+                                                <option value="">{t.products.notSelected || 'Не выбрано...'}</option>
                                                 {ingredients
                                                     .filter(ing => !formData.recipe.some(r => r.ingredientId === ing.id))
                                                     .map(ing => (
@@ -395,7 +395,7 @@ const ProductManager = () => {
                                     </div>
                                     <div className="flex gap-4">
                                         <div className="flex-1">
-                                            <label htmlFor="recipe-amount" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Расход</label>
+                                            <label htmlFor="recipe-amount" className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">{t.products.consumption || 'Расход'}</label>
                                             <input
                                                 type="number"
                                                 id="recipe-amount"
@@ -412,7 +412,7 @@ const ProductManager = () => {
                                             />
                                         </div>
                                         <div className="w-24">
-                                            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">Ед. изм.</label>
+                                            <label className="block text-xs font-semibold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">{t.products.unitLabel || 'Ед. изм.'}</label>
                                             <div className="h-[50px] flex items-center justify-center bg-[var(--bg-page)] rounded-xl border border-[var(--border)] font-mono text-sm text-[var(--text-secondary)]">
                                                 {recipeItem.ingredientId ? (t.unitNames?.[ingredients.find(i => i.id === recipeItem.ingredientId)?.unit] || ingredients.find(i => i.id === recipeItem.ingredientId)?.unit) : '---'}
                                             </div>
@@ -425,7 +425,7 @@ const ProductManager = () => {
                                         onClick={() => setIsAddingRecipeItem(false)}
                                         className="btn flex-1 bg-[var(--bg-page)] text-[var(--text-secondary)] hover:bg-gray-100 dark:hover:bg-gray-800"
                                     >
-                                        Отмена
+                                        {t.common.cancel || 'Отмена'}
                                     </button>
                                     <button
                                         type="button"
@@ -433,7 +433,7 @@ const ProductManager = () => {
                                         className="btn btn-primary flex-1 shadow-md shadow-blue-500/20"
                                         disabled={!recipeItem.ingredientId || !recipeItem.amount}
                                     >
-                                        <Plus size={18} /> Добавить
+                                        <Plus size={18} /> {t.common.add || 'Добавить'}
                                     </button>
                                 </div>
                             </div>
