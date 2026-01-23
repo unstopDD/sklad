@@ -1,5 +1,5 @@
 import React from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import Layout from './components/core/Layout'
 import Dashboard from './components/dashboard/Dashboard'
 import UnitManager from './components/inventory/UnitManager'
@@ -22,7 +22,16 @@ import { LangProvider } from './i18n';
 
 const AppContent = () => {
     const { user, loading, authError } = useAuth();
+    const navigate = useNavigate();
+    const { pathname } = useLocation();
     const profile = useInventoryStore(state => state.profile);
+
+    // Auto-redirect from OAuth callback routes once authenticated
+    React.useEffect(() => {
+        if (user && (pathname.startsWith('/access_token') || pathname.startsWith('/error'))) {
+            navigate('/app', { replace: true });
+        }
+    }, [user, pathname, navigate]);
 
     // 1. Loading State
     if (loading) {
@@ -70,6 +79,11 @@ const AppContent = () => {
             <Route path="/app/login" element={
                 user ? <Navigate to="/app" replace /> : <AuthPage />
             } />
+
+            {/* Handle raw OAuth callback paths that HashRouter identifies as routes */}
+            {/* These routes will render nothing or a loader, letting AuthProvider process the session */}
+            <Route path="/access_token=*" element={<div className="min-h-screen bg-slate-900 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-500" size={32} /></div>} />
+            <Route path="/error=*" element={<Navigate to="/app/login" replace />} />
 
             {/* Protected app routes */}
             <Route path="/app/*" element={<ProtectedRoute />}>
