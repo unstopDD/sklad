@@ -100,17 +100,6 @@ const AppContent = () => {
 };
 
 function App() {
-    // Handle OAuth callbacks - Supabase redirects to /#access_token=... which HashRouter sees as route
-    // We need to detect this and redirect to /#/app before routing happens
-    React.useEffect(() => {
-        const hash = window.location.hash;
-        // Check if hash starts with OAuth params (not a valid route)
-        if (hash && (hash.startsWith('#access_token') || hash.startsWith('#error') || hash.startsWith('#type='))) {
-            // Replace with /app route, preserving the OAuth params
-            window.location.hash = '/app' + hash.substring(1); // Remove first # and append to /app
-        }
-    }, []);
-
     return (
         <LangProvider>
             <ErrorBoundary>
