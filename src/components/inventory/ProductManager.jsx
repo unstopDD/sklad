@@ -183,6 +183,17 @@ const ProductManager = () => {
                     <p className="text-[var(--text-secondary)] text-sm">
                         {t.products.desc || 'Управляйте составом ваших изделий.'}
                     </p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
+                        <AlertCircle size={14} className="text-[var(--primary)]" />
+                        <span>{t.products.importFormat}</span>
+                        <span className="mx-1">•</span>
+                        <button
+                            onClick={() => ExportService.downloadTemplate('products', t)}
+                            className="text-[var(--primary)] hover:underline font-medium"
+                        >
+                            {t.common.downloadTemplate}
+                        </button>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <input

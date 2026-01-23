@@ -124,6 +124,17 @@ const IngredientManager = () => {
                 <div>
                     <h2 className="text-xl font-bold text-[var(--text-main)]">{t.ingredients.title}</h2>
                     <p className="text-[var(--text-secondary)] text-sm">{t.ingredients.desc || 'Управляйте остатками материалов и сырья.'}</p>
+                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
+                        <AlertCircle size={14} className="text-[var(--primary)]" />
+                        <span>{t.ingredients.importFormat}</span>
+                        <span className="mx-1">•</span>
+                        <button
+                            onClick={() => ExportService.downloadTemplate('materials', t)}
+                            className="text-[var(--primary)] hover:underline font-medium"
+                        >
+                            {t.common.downloadTemplate}
+                        </button>
+                    </div>
                 </div>
                 <div className="flex gap-2">
                     <input

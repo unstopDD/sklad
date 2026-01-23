@@ -62,6 +62,7 @@ export const appTranslations = {
             balance: 'залишок',
             export: 'Експорт',
             import: 'Імпорт',
+            downloadTemplate: 'Завантажити шаблон',
             status: 'Статус',
             normal: 'Норма',
         },
@@ -104,6 +105,7 @@ export const appTranslations = {
             importError: 'Помилка при імпорті файлу',
             importPreview: 'Передпогляд імпорту',
             importConfirm: 'Додати ці матеріали на склад?',
+            importFormat: 'Стовпці: Назва, Кількість, Одиниця, Мін. залишок',
         },
         products: {
             title: 'Продукція',
@@ -135,6 +137,7 @@ export const appTranslations = {
             importSuccess: 'Імпортовано продуктів: {count}',
             importPreview: 'Передпогляд імпорту продукції',
             importConfirm: 'Додати ці продукти до списку?',
+            importFormat: 'Стовпці: Назва, Кількість, Одиниця, Склад',
         },
         production: {
             desc: 'Виберіть продукт для виробництва. Компоненти будуть автоматично списані зі складу.',
@@ -281,6 +284,7 @@ export const appTranslations = {
             balance: 'остаток',
             export: 'Экспорт',
             import: 'Импорт',
+            downloadTemplate: 'Скачать шаблон',
             status: 'Статус',
             normal: 'Норма',
         },
@@ -323,6 +327,7 @@ export const appTranslations = {
             importError: 'Ошибка при импорте файла',
             importPreview: 'Предпросмотр импорта',
             importConfirm: 'Добавить эти материалы на склад?',
+            importFormat: 'Столбцы: Название, Количество, Единица, Мин. остаток',
         },
         products: {
             title: 'Продукция',
@@ -354,6 +359,7 @@ export const appTranslations = {
             importSuccess: 'Импортировано продуктов: {count}',
             importPreview: 'Предпросмотр импорта продукции',
             importConfirm: 'Добавить эти продукты в список?',
+            importFormat: 'Столбцы: Название, Количество, Единица, Состав',
         },
         production: {
             desc: 'Выберите продукт для производства. Компоненты будут автоматически списаны со склада.',
@@ -500,6 +506,7 @@ export const appTranslations = {
             balance: 'balance',
             export: 'Export',
             import: 'Import',
+            downloadTemplate: 'Download Template',
             status: 'Status',
             normal: 'Normal',
         },
@@ -542,6 +549,7 @@ export const appTranslations = {
             importError: 'Error importing file',
             importPreview: 'Import Preview',
             importConfirm: 'Add these materials to inventory?',
+            importFormat: 'Columns: Name, Quantity, Unit, Min Stock',
         },
         products: {
             title: 'Products',
@@ -573,6 +581,7 @@ export const appTranslations = {
             importSuccess: 'Products imported: {count}',
             importPreview: 'Product Import Preview',
             importConfirm: 'Add these products to the list?',
+            importFormat: 'Columns: Name, Quantity, Unit, Composition',
         },
         production: {
             desc: 'Select a product for production. Components will be automatically deducted from stock.',

@@ -142,5 +142,39 @@ export const ExportService = {
             headers,
             format
         });
+    },
+
+    /**
+     * Download empty template for import
+     */
+    downloadTemplate: (type, t) => {
+        let headers = {};
+        let filename = '';
+        if (type === 'materials') {
+            headers = {
+                name: t.ingredients.name,
+                quantity: t.ingredients.quantity,
+                unit: t.ingredients.unit,
+                minStock: t.ingredients.minStock
+            };
+            filename = 'Template_Materials';
+        } else {
+            headers = {
+                name: t.products.name,
+                quantity: t.products.quantity,
+                unit: t.common.unitLabel || t.ingredients.unit,
+                recipe: t.products.composition || 'Состав'
+            };
+            filename = 'Template_Products';
+        }
+
+        // Single sample row to show format
+        const data = [Object.keys(headers).reduce((acc, key) => ({ ...acc, [key]: '' }), {})];
+
+        return ExportService.exportToExcel(data, {
+            filename,
+            sheetName: 'Template',
+            headers
+        });
     }
 };
