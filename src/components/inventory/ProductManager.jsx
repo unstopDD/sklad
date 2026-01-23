@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download, FileSpreadsheet, FileText } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
+import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
 import ExportModal from '../ui/ExportModal';
 import { useLang } from '../../i18n';
 
 const ProductManager = () => {
-    const { products, ingredients, units, addProduct, removeProduct, addToast } = useInventoryStore();
+    const { products, ingredients, units, addProduct, removeProduct, addIngredient, addToast } = useInventoryStore();
     const { t } = useLang();
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const [expandedRecipe, setExpandedRecipe] = useState(null);
+    const [importPreview, setImportPreview] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -101,6 +104,72 @@ const ProductManager = () => {
         addToast('Продукт удалён', 'success');
     };
 
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const rawData = await ImportService.parseFile(file);
+            const mapped = ImportService.mapToProducts(rawData, t, ingredients);
+            if (mapped.length > 0) {
+                setImportPreview(mapped);
+            } else {
+                addToast(t.common.noData || 'Нет данных для импорта', 'error');
+            }
+        } catch (err) {
+            console.error('Import error:', err);
+            addToast(t.ingredients.importError || 'Ошибка при импорте', 'error');
+        }
+        e.target.value = '';
+    };
+
+    const confirmImport = async () => {
+        if (!importPreview) return;
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const item of importPreview) {
+            // 1. Process Recipe: find or create missing ingredients
+            const processedRecipe = [];
+            for (const r of item.recipe) {
+                if (r.ingredientId) {
+                    processedRecipe.push(r);
+                } else if (r.ingName) {
+                    // Ingredient not found by ID, try finding by name again (could have been added in this loop)
+                    const latestIngredients = useInventoryStore.getState().ingredients;
+                    const existing = latestIngredients.find(i => i.name.toLowerCase() === r.ingName.toLowerCase());
+
+                    if (existing) {
+                        processedRecipe.push({ ingredientId: existing.id, amount: r.amount });
+                    } else {
+                        // Create NEW ingredient
+                        const res = await addIngredient({
+                            name: r.ingName,
+                            quantity: 0,
+                            unit: 'кг', // Default unit
+                            minStock: 0
+                        });
+
+                        if (res.success && res.ingredient) {
+                            processedRecipe.push({ ingredientId: res.ingredient.id, amount: r.amount });
+                        }
+                    }
+                }
+            }
+
+            // 2. Add product with finalized recipe
+            const res = await addProduct({ ...item, recipe: processedRecipe });
+            if (res.success) added++;
+            else skipped++;
+        }
+
+        const msg = (t.products.importSuccess || 'Импортировано {count} записей').replace('{count}', added.toString());
+        const extra = skipped > 0 ? ` (${skipped} пропущено)` : '';
+        addToast(msg + extra, added > 0 ? 'success' : 'info');
+        setImportPreview(null);
+    };
+
     const getIngredientName = (id) => ingredients.find(i => i.id === id)?.name || 'Неизвестно';
 
     const filtered = products.filter(p => p.name.toLowerCase().includes(filter.toLowerCase()));
@@ -116,6 +185,21 @@ const ProductManager = () => {
                     </p>
                 </div>
                 <div className="flex gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".xlsx, .xls, .csv"
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
+                        title={t.common.import}
+                    >
+                        <Upload size={18} className="text-[var(--primary)]" />
+                        <span className="hidden sm:inline">{t.common.import}</span>
+                    </button>
                     <button
                         onClick={() => setIsExportModalOpen(true)}
                         className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
@@ -472,6 +556,78 @@ const ProductManager = () => {
                 onClose={() => setIsExportModalOpen(false)}
                 onExport={(format) => ExportService.exportProducts(products, t, ingredients, format)}
             />
+
+            {/* Import Preview Modal */}
+            {importPreview && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-bold text-[var(--text-main)]">{t.products.importPreview || 'Предварительный просмотр'}</h3>
+                                <p className="text-sm text-[var(--text-secondary)]">{t.products.importConfirm || 'Подтвердите импорт данных'}</p>
+                            </div>
+                            <div className="flex gap-2 items-center">
+                                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
+                                    <AlertCircle size={14} />
+                                    <span>Формат состава: "Название: Количество, ..."</span>
+                                </div>
+                                <button onClick={() => setImportPreview(null)} className="p-2 hover:bg-[var(--bg-page)] rounded-lg text-[var(--text-secondary)]">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-0">
+                            <table className="w-full text-left">
+                                <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-3">{t.products.name}</th>
+                                        <th className="px-6 py-3">{t.products.quantity}</th>
+                                        <th className="px-6 py-3">{t.products.composition}</th>
+                                        <th className="px-6 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--border)]">
+                                    {importPreview.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-[var(--bg-page)]">
+                                            <td className="px-6 py-4 font-bold text-[var(--text-main)]">{item.name}</td>
+                                            <td className="px-6 py-4">{item.quantity} {item.unit}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex flex-wrap gap-1">
+                                                    {item.recipe.map((r, i) => (
+                                                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${r.ingredientId ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
+                                                            {r.ingredientId ? getIngredientName(r.ingredientId) : r.ingName}: {r.amount}
+                                                            {!r.ingredientId && <Plus size={8} />}
+                                                        </span>
+                                                    ))}
+                                                    {item.warnings?.map((w, i) => (
+                                                        <span key={i} className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-100 flex items-center gap-1">
+                                                            <AlertCircle size={10} /> {w}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {item.warnings && <AlertCircle className="text-orange-500" size={18} title={item.warnings.join('\n')} />}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-page)] flex justify-end gap-3">
+                            <button onClick={() => setImportPreview(null)} className="btn btn-secondary">
+                                {t.common.cancel}
+                            </button>
+                            <button onClick={confirmImport} className="btn btn-primary shadow-lg shadow-blue-500/20">
+                                <CheckCircle2 size={18} />
+                                {t.common.confirm} ({importPreview.length})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

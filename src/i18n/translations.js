@@ -131,6 +131,10 @@ export const appTranslations = {
             consumption: 'Витрата',
             unitLabel: 'Од. вим.',
             notSelected: 'Не обрано...',
+            importTitle: 'Імпорт продукції',
+            importSuccess: 'Імпортовано продуктів: {count}',
+            importPreview: 'Передпогляд імпорту продукції',
+            importConfirm: 'Додати ці продукти до списку?',
         },
         production: {
             desc: 'Виберіть продукт для виробництва. Компоненти будуть автоматично списані зі складу.',
@@ -346,6 +350,10 @@ export const appTranslations = {
             consumption: 'Расход',
             unitLabel: 'Ед. изм.',
             notSelected: 'Не выбрано...',
+            importTitle: 'Импорт продукции',
+            importSuccess: 'Импортировано продуктов: {count}',
+            importPreview: 'Предпросмотр импорта продукции',
+            importConfirm: 'Добавить эти продукты в список?',
         },
         production: {
             desc: 'Выберите продукт для производства. Компоненты будут автоматически списаны со склада.',
@@ -561,6 +569,10 @@ export const appTranslations = {
             consumption: 'Consumption',
             unitLabel: 'Unit',
             notSelected: 'Not selected...',
+            importTitle: 'Import Products',
+            importSuccess: 'Products imported: {count}',
+            importPreview: 'Product Import Preview',
+            importConfirm: 'Add these products to the list?',
         },
         production: {
             desc: 'Select a product for production. Components will be automatically deducted from stock.',

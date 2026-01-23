@@ -77,11 +77,89 @@ export const ImportService = {
                 return {
                     name: ingredient.name.toString().trim(),
                     quantity: parseFloat(ingredient.quantity) || 0,
-                    unit: (ingredient.unit || 'шт').toString().trim(),
+                    unit: (ingredient.unit || 'кг').toString().trim(),
                     minStock: parseFloat(ingredient.minStock) || 0
                 };
             }
             return null;
         }).filter(Boolean); // Remove empty rows or rows without name
+    },
+
+    /**
+     * Map raw JSON data to Product objects
+     * @param {Array} rawData 
+     * @param {Object} t 
+     * @param {Array} allIngredients - Current ingredients to match names
+     */
+    mapToProducts: (rawData, t, allIngredients) => {
+        const mapping = {
+            [t.products.name]: 'name',
+            [t.products.quantity]: 'quantity',
+            [t.common.unitLabel || t.ingredients.unit]: 'unit',
+            [t.products.composition || 'Состав']: 'recipeRaw'
+        };
+
+        const fallbacks = {
+            'Название': 'name',
+            'Количество': 'quantity',
+            'Единица': 'unit',
+            'Состав': 'recipeRaw',
+            'Рецепт': 'recipeRaw',
+            'Name': 'name',
+            'Quantity': 'quantity',
+            'Unit': 'unit',
+            'Recipe': 'recipeRaw',
+            'Composition': 'recipeRaw'
+        };
+
+        const finalMapping = { ...fallbacks, ...mapping };
+
+        return rawData.map(row => {
+            const product = {};
+            Object.keys(row).forEach(key => {
+                const internalKey = finalMapping[key.trim()];
+                if (internalKey) product[internalKey] = row[key];
+            });
+
+            if (!product.name) return null;
+
+            // Parse Recipe: "Ингредиент: Кол-во, Ингредиент2: Кол-во"
+            const recipe = [];
+            const warnings = [];
+
+            if (product.recipeRaw) {
+                const parts = product.recipeRaw.toString().split(',');
+                parts.forEach(part => {
+                    const [ingName, qtyStr] = part.split(':').map(s => s.trim());
+                    if (ingName && qtyStr) {
+                        const ingredient = allIngredients.find(i =>
+                            i.name.toLowerCase() === ingName.toLowerCase()
+                        );
+
+                        if (ingredient) {
+                            recipe.push({
+                                ingredientId: ingredient.id,
+                                amount: parseFloat(qtyStr) || 0
+                            });
+                        } else {
+                            // Save original name for auto-creation later
+                            recipe.push({
+                                ingName: ingName,
+                                amount: parseFloat(qtyStr) || 0
+                            });
+                            warnings.push(`Будет создан новый материал: ${ingName}`);
+                        }
+                    }
+                });
+            }
+
+            return {
+                name: product.name.toString().trim(),
+                quantity: parseFloat(product.quantity) || 0,
+                unit: (product.unit || 'шт').toString().trim(),
+                recipe,
+                warnings: warnings.length > 0 ? warnings : null
+            };
+        }).filter(Boolean);
     }
 };

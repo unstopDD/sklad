@@ -95,7 +95,7 @@ export const ExportService = {
             name: t.products.name,
             quantity: t.products.quantity,
             unit: t.common.unitLabel || t.ingredients.unit,
-            recipe: t.products.recipe || 'Рецепт'
+            recipe: t.products.composition || 'Состав'
         };
 
         const data = products.map(p => {

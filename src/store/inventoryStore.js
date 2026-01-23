@@ -340,12 +340,15 @@ export const useInventoryStore = create((set, get) => ({
         const userId = get().user?.id;
         if (!userId) return { success: false };
 
-        if (product.id) {
+        // Clean data for DB (remove warnings and other non-DB fields)
+        const { id, warnings, ...dataForDB } = product;
+
+        if (id) {
             // Update
             const { data, error } = await supabase
                 .from('products')
-                .update({ ...product })
-                .eq('id', product.id)
+                .update(dataForDB)
+                .eq('id', id)
                 .select()
                 .single();
 
@@ -357,15 +360,14 @@ export const useInventoryStore = create((set, get) => ({
 
             // Update local state with the exact data from DB
             set(state => ({
-                products: state.products.map(p => p.id === product.id ? data : p)
+                products: state.products.map(p => p.id === id ? data : p)
             }));
             await get().logAction('Обновление', `Обновлен продукт: ${data.name}`);
         } else {
             // Create
-            const { id, ...dataToInsert } = product;
             const { data, error } = await supabase
                 .from('products')
-                .insert([{ ...dataToInsert, user_id: userId }])
+                .insert([{ ...dataForDB, user_id: userId }])
                 .select()
                 .single();
 
