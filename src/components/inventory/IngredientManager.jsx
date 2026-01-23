@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Search, AlertCircle, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, AlertCircle, Download, Upload, X, CheckCircle2 } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
+import { ImportService } from '../../utils/ImportService';
 import SlideOver from '../ui/SlideOver';
 import { useLang } from '../../i18n';
 
@@ -11,6 +12,8 @@ const IngredientManager = () => {
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const [editingQty, setEditingQty] = useState(null);
+    const [importPreview, setImportPreview] = useState(null);
+    const fileInputRef = React.useRef(null);
 
     // Form State
     const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '' });
@@ -67,6 +70,43 @@ const IngredientManager = () => {
         addToast(t.ingredients.deleted || 'Материал удален', 'success');
     };
 
+    const handleFileChange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            const rawData = await ImportService.parseFile(file);
+            const mapped = ImportService.mapToIngredients(rawData, t);
+            if (mapped.length > 0) {
+                setImportPreview(mapped);
+            } else {
+                addToast(t.common.noData || 'Нет данных для импорта', 'error');
+            }
+        } catch (err) {
+            console.error('Import error:', err);
+            addToast(t.ingredients.importError || 'Ошибка при импорте', 'error');
+        }
+        e.target.value = ''; // Reset input
+    };
+
+    const confirmImport = async () => {
+        if (!importPreview) return;
+
+        let added = 0;
+        let skipped = 0;
+
+        for (const item of importPreview) {
+            const res = await addIngredient(item);
+            if (res.success) added++;
+            else skipped++;
+        }
+
+        const msg = t.ingredients.importSuccess.replace('{count}', added.toString());
+        const extra = skipped > 0 ? ` (${skipped} пропущено)` : '';
+        addToast(msg + extra, added > 0 ? 'success' : 'info');
+        setImportPreview(null);
+    };
+
     const getStockStatus = (ing) => {
         if (ing.quantity === 0) return 'danger';
         if (ing.minStock && ing.quantity <= ing.minStock) return 'warning';
@@ -84,6 +124,21 @@ const IngredientManager = () => {
                     <p className="text-[var(--text-secondary)] text-sm">{t.ingredients.desc || 'Управляйте остатками материалов и сырья.'}</p>
                 </div>
                 <div className="flex gap-2">
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".xlsx, .xls, .csv"
+                        className="hidden"
+                    />
+                    <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
+                        title={t.common.import}
+                    >
+                        <Upload size={18} className="text-[var(--primary)]" />
+                        <span className="hidden sm:inline">{t.common.import}</span>
+                    </button>
                     <button
                         onClick={() => ExportService.exportIngredients(ingredients, t)}
                         className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
@@ -286,6 +341,55 @@ const IngredientManager = () => {
                     </div>
                 </form>
             </SlideOver>
+            {/* Import Preview Modal */}
+            {importPreview && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+                        <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
+                            <div>
+                                <h3 className="text-xl font-bold text-[var(--text-main)]">{t.ingredients.importPreview}</h3>
+                                <p className="text-sm text-[var(--text-secondary)]">{t.ingredients.importConfirm}</p>
+                            </div>
+                            <button onClick={() => setImportPreview(null)} className="p-2 hover:bg-[var(--bg-page)] rounded-lg text-[var(--text-secondary)]">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-0">
+                            <table className="w-full text-left">
+                                <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
+                                    <tr>
+                                        <th className="px-6 py-3">{t.ingredients.name}</th>
+                                        <th className="px-6 py-3">{t.ingredients.quantity}</th>
+                                        <th className="px-6 py-3">{t.ingredients.unit}</th>
+                                        <th className="px-6 py-3">{t.ingredients.minStock}</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-[var(--border)]">
+                                    {importPreview.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-[var(--bg-page)]">
+                                            <td className="px-6 py-4 font-bold text-[var(--text-main)]">{item.name}</td>
+                                            <td className="px-6 py-4">{item.quantity}</td>
+                                            <td className="px-6 py-4 text-[var(--text-secondary)]">{item.unit}</td>
+                                            <td className="px-6 py-4 text-[var(--text-light)]">{item.minStock}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-page)] flex justify-end gap-3">
+                            <button onClick={() => setImportPreview(null)} className="btn btn-secondary">
+                                {t.common.cancel}
+                            </button>
+                            <button onClick={confirmImport} className="btn btn-primary shadow-lg shadow-blue-500/20">
+                                <CheckCircle2 size={18} />
+                                {t.common.confirm} ({importPreview.length})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
