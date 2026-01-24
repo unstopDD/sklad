@@ -136,11 +136,6 @@ const Hero = () => {
                 <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
                     {/* Left Content */}
                     <div className="text-center lg:text-left">
-                        {/* Badge */}
-                        <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-300 text-sm mb-6">
-                            <Sparkles size={16} />
-                            <span>Free for first 100 users</span>
-                        </div>
 
                         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white leading-tight mb-6">
                             {t.hero.title.split(' ').map((word, i) => (
@@ -501,27 +496,22 @@ const Pricing = () => {
         { key: 'free', data: t.pricing.free },
         { key: 'starter', data: t.pricing.starter },
         { key: 'pro', data: t.pricing.pro },
+        { key: 'business', data: t.pricing.business },
     ];
 
     return (
         <section id="pricing" className="py-20 sm:py-32 bg-slate-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-4">
-                    <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-full text-green-400 text-sm">
-                        {t.pricing.badge}
-                    </span>
-                </div>
-
                 <h2 className="text-3xl sm:text-4xl font-bold text-center text-white mb-16">
                     {t.pricing.title}
                 </h2>
 
-                <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
                     {plans.map(({ key, data }) => (
                         <div
                             key={key}
-                            className={`relative p-6 sm:p-8 rounded-3xl transition-all ${data.popular
-                                ? 'bg-gradient-to-b from-indigo-900/50 to-slate-800 border-2 border-indigo-500 scale-105 shadow-xl shadow-indigo-500/20'
+                            className={`relative p-6 rounded-3xl transition-all ${data.popular
+                                ? 'bg-gradient-to-b from-indigo-900/50 to-slate-800 border-2 border-indigo-500 scale-105 shadow-xl shadow-indigo-500/20 z-10'
                                 : 'bg-gradient-to-b from-slate-800 to-slate-800/50 border border-slate-700/50 hover:border-slate-600'
                                 }`}
                         >

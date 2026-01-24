@@ -14,6 +14,10 @@ const mockQueryBuilder = {
     limit: vi.fn().mockReturnThis(),
     single: vi.fn().mockReturnThis(),
     maybeSingle: vi.fn().mockReturnThis(),
+    upsert: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    // Make it thenable so it can be awaited
+    then: vi.fn((resolve) => resolve({ data: [], error: null }))
 };
 
 vi.mock('../../lib/supabase', () => ({
@@ -112,7 +116,7 @@ describe('inventoryStore', () => {
             products: [product]
         });
 
-        mockQueryBuilder.eq.mockResolvedValue({ error: null });
+        mockQueryBuilder.then.mockImplementationOnce(resolve => resolve({ error: null }));
 
         const { produceProduct } = useInventoryStore.getState();
         const result = await produceProduct('prod1', 1);

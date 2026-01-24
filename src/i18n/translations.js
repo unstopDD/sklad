@@ -11,6 +11,9 @@ export const appTranslations = {
             writeoff: 'Списання',
             history: 'Історія',
             units: 'Одиниці вим.',
+            ingredientsBrief: 'Склад',
+            productsBrief: 'Товари',
+            productionBrief: 'Цех',
         },
         units: {
             desc: 'Налаштуйте одиниці, в яких буде вимірюватися сировина та продукція.',
@@ -509,6 +512,9 @@ export const appTranslations = {
             writeoff: 'Write-off',
             history: 'History',
             units: 'Units',
+            ingredientsBrief: 'Store',
+            productsBrief: 'Items',
+            productionBrief: 'Shop',
         },
         units: {
             desc: 'Configure the units in which materials and products will be measured.',

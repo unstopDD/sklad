@@ -6,6 +6,7 @@ import { useLang } from '../../i18n';
 import StatsCards from './StatsCards';
 import InventoryPieChart from './InventoryPieChart';
 import ProductionAreaChart from './ProductionAreaChart';
+import { StockFilter } from '../../utils/StockFilter';
 
 const OnboardingCard = ({ step, title, description, linkTo, linkText, icon: Icon }) => (
     <div className="card relative overflow-hidden">
@@ -59,53 +60,10 @@ const Dashboard = () => {
     // Show onboarding until ALL steps are at least partially touched
     const showOnboarding = !hasIngredients || !hasProducts || !hasProduction;
 
-    // Filter items by activity (used in history in last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const activeItemNames = new Set(
-        history
-            .filter(h => new Date(h.date) >= thirtyDaysAgo)
-            .map(h => {
-                // Extract item name from double quotes if present, else use whole description
-                const match = h.description.match(/"([^"]+)"/);
-                return match ? match[1] : h.description;
-            })
-    );
-
-    // Filter and sort LOW stock items
-    const lowIngredients = [...ingredients]
-        .filter(i => {
-            const quantity = Number(i.quantity) || 0;
-            const minStock = Number(i.minStock !== undefined ? i.minStock : i.min_stock) || 0;
-
-            const isLow = quantity <= minStock;
-
-            // Item is active if its name appears in recent history descriptions
-            const isActive = Array.from(activeItemNames).some(historyText =>
-                historyText.includes(i.name)
-            );
-
-            // Show if it's really low (or zero) AND was active recently
-            // Or always show if it's exactly 0 (critical)
-            return isLow && (isActive || quantity === 0);
-        })
-        .sort((a, b) => Number(a.quantity) - Number(b.quantity))
-        .slice(0, 5);
-
-    const lowProducts = [...products]
-        .filter(p => {
-            const quantity = Number(p.quantity) || 0;
-            const isLow = quantity <= 0; // Products mostly don't have minStock logic yet
-
-            const isActive = Array.from(activeItemNames).some(historyText =>
-                historyText.includes(p.name)
-            );
-
-            return isLow && isActive;
-        })
-        .sort((a, b) => (Number(a.quantity) || 0) - (Number(b.quantity) || 0))
-        .slice(0, 5);
+    // Filter and sort LOW stock items using extracted logic
+    const activeItemNames = StockFilter.getActiveItemNames(history);
+    const lowIngredients = StockFilter.getLowIngredients(ingredients, activeItemNames);
+    const lowProducts = StockFilter.getLowProducts(products, activeItemNames);
 
     return (
         <div className="space-y-6">

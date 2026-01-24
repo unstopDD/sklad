@@ -157,12 +157,18 @@ export const useInventoryStore = create((set, get) => ({
     // Initialize Data
     fetchInitialData: async () => {
         set({ loading: true, error: null });
+        const userId = get().user?.id;
+        if (!userId) {
+            set({ loading: false });
+            return;
+        }
+
         try {
             const [unitsRes, ingredientsRes, productsRes, historyRes] = await Promise.all([
-                supabase.from('units').select('*').order('created_at'),
-                supabase.from('ingredients').select('*').order('created_at'),
-                supabase.from('products').select('*').order('created_at'),
-                supabase.from('history').select('*').order('date', { ascending: false }).limit(100)
+                supabase.from('units').select('*').eq('user_id', userId).order('created_at'),
+                supabase.from('ingredients').select('*').eq('user_id', userId).order('created_at'),
+                supabase.from('products').select('*').eq('user_id', userId).order('created_at'),
+                supabase.from('history').select('*').eq('user_id', userId).order('date', { ascending: false }).limit(100)
             ]);
 
             if (unitsRes.error) throw unitsRes.error;
@@ -173,7 +179,6 @@ export const useInventoryStore = create((set, get) => ({
             // Seed units if empty
             let units = unitsRes.data.map(u => u.name);
             if (units.length === 0) {
-                const userId = get().user?.id;
                 if (userId) {
                     // Use upsert with ignoreDuplicates to prevent 409 errors
                     const unitsToInsert = DEFAULT_UNITS.map(name => ({
@@ -225,11 +230,14 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     removeUnit: async (unitName) => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         // Optimistic
         const previousUnits = get().units;
         set(state => ({ units: state.units.filter(u => u !== unitName) }));
 
-        const { error } = await supabase.from('units').delete().eq('name', unitName);
+        const { error } = await supabase.from('units').delete().eq('name', unitName).eq('user_id', userId);
         if (error) {
             get().addToast('Ошибка удаления единицы', 'error');
             set({ units: previousUnits });
@@ -264,7 +272,8 @@ export const useInventoryStore = create((set, get) => ({
             const { error } = await supabase
                 .from('ingredients')
                 .update(dbPayload)
-                .eq('id', ingredient.id);
+                .eq('id', ingredient.id)
+                .eq('user_id', userId);
 
             if (error) {
                 get().addToast('Ошибка обновления', 'error');
@@ -300,10 +309,14 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     updateIngredientQuantity: async (id, newQuantity) => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         const { error } = await supabase
             .from('ingredients')
             .update({ quantity: newQuantity })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (!error) {
             set(state => ({
@@ -315,8 +328,11 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     removeIngredient: async (id) => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         const ing = get().ingredients.find(i => i.id === id);
-        const { error } = await supabase.from('ingredients').delete().eq('id', id);
+        const { error } = await supabase.from('ingredients').delete().eq('id', id).eq('user_id', userId);
 
         if (!error) {
             set(state => ({ ingredients: state.ingredients.filter(i => i.id !== id) }));
@@ -349,6 +365,7 @@ export const useInventoryStore = create((set, get) => ({
                 .from('products')
                 .update(dataForDB)
                 .eq('id', id)
+                .eq('user_id', userId)
                 .select()
                 .single();
 
@@ -384,8 +401,11 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     removeProduct: async (id) => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         const prod = get().products.find(p => p.id === id);
-        const { error } = await supabase.from('products').delete().eq('id', id);
+        const { error } = await supabase.from('products').delete().eq('id', id).eq('user_id', userId);
 
         if (!error) {
             set(state => ({ products: state.products.filter(p => p.id !== id) }));
@@ -420,9 +440,15 @@ export const useInventoryStore = create((set, get) => ({
         }
 
         try {
+            const userId = get().user?.id;
+            if (!userId) throw new Error('User not authenticated');
+
             // Deduct ingredients
             await Promise.all(updates.map(u =>
-                supabase.from('ingredients').update({ quantity: u.newQuantity }).eq('id', u.id)
+                supabase.from('ingredients')
+                    .update({ quantity: u.newQuantity })
+                    .eq('id', u.id)
+                    .eq('user_id', userId)
             ));
 
             // Increment product stock
@@ -430,7 +456,10 @@ export const useInventoryStore = create((set, get) => ({
             const newProdQty = currentProdQty + quantity;
 
             // We attempt to update product quantity.
-            const { error: prodError } = await supabase.from('products').update({ quantity: newProdQty }).eq('id', productId);
+            const { error: prodError } = await supabase.from('products')
+                .update({ quantity: newProdQty })
+                .eq('id', productId)
+                .eq('user_id', userId);
             if (prodError) throw prodError;
 
             // Update local state
@@ -452,11 +481,15 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     updateProductQuantity: async (id, newQuantity) => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         const prod = get().products.find(p => p.id === id);
         const { error } = await supabase
             .from('products')
             .update({ quantity: newQuantity })
-            .eq('id', id);
+            .eq('id', id)
+            .eq('user_id', userId);
 
         if (!error) {
             set(state => ({
@@ -466,8 +499,6 @@ export const useInventoryStore = create((set, get) => ({
             get().addToast('Ошибка обновления остатка продукта', 'error');
         }
     },
-
-
 
     // History Log
     logAction: async (type, description) => {
@@ -492,7 +523,10 @@ export const useInventoryStore = create((set, get) => ({
     },
 
     clearHistory: async () => {
+        const userId = get().user?.id;
+        if (!userId) return;
+
         set({ history: [] });
-        await supabase.from('history').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+        await supabase.from('history').delete().eq('user_id', userId);
     }
 }));
