@@ -30,9 +30,9 @@ export const useInventoryStore = create((set, get) => ({
 
     // Plan Limits
     PLAN_LIMITS: {
-        free: { materials: 15, products: 5, historyDays: 30 },
-        starter: { materials: 70, products: 30, historyDays: null },
-        pro: { materials: 150, products: 50, historyDays: null },
+        free: { materials: 20, products: 10, historyDays: 30 },
+        starter: { materials: 100, products: 50, historyDays: null },
+        pro: { materials: 250, products: 100, historyDays: null },
         business: { materials: Infinity, products: Infinity, historyDays: null }
     },
 
