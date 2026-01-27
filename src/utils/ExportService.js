@@ -213,7 +213,7 @@ export const ExportService = {
     /**
      * Download empty template for import
      */
-    downloadTemplate: (type, t) => {
+    downloadTemplate: (type, t, format = 'xlsx') => {
         let headers = {};
         let filename = '';
         if (type === 'materials') {
@@ -221,7 +221,9 @@ export const ExportService = {
                 name: t.ingredients.name,
                 quantity: t.ingredients.quantity,
                 unit: t.ingredients.unit,
-                minStock: t.ingredients.minStock
+                minStock: t.ingredients.minStock,
+                packingName: t.ingredients.packingName || 'Упаковка',
+                packingSize: t.ingredients.packingSize || 'Вместимость упаковки'
             };
             filename = 'Template_Materials';
         } else {

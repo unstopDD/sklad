@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Search, AlertCircle, Download, Upload, X, CheckCircle2, HelpCircle, Lock } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, AlertCircle, Download, Upload, X, CheckCircle2, HelpCircle, Lock, Package } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
@@ -7,6 +7,18 @@ import SlideOver from '../ui/SlideOver';
 import ExportModal from '../ui/ExportModal';
 import ImportGuideModal from '../ui/ImportGuideModal';
 import { useLang } from '../../i18n';
+
+const INITIAL_STATE = {
+    id: null,
+    name: '',
+    unit: 'кг',
+    quantity: '0',
+    minStock: '5',
+    pricePerUnit: '0',
+    external_code: '',
+    packingName: '',
+    packingSize: ''
+};
 
 const IngredientManager = () => {
     const { ingredients, units, addIngredient, removeIngredient, updateIngredientQuantity, addToast } = useInventoryStore();
@@ -21,9 +33,10 @@ const IngredientManager = () => {
     const fileInputRef = React.useRef(null);
 
     // Form State
-    const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '', pricePerUnit: '' });
+    const [formData, setFormData] = useState(INITIAL_STATE);
     const [errors, setErrors] = useState({});
     const [isImportGuideOpen, setIsImportGuideOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false); // Added isEditing state
     const { profile, PLAN_RANK } = useInventoryStore();
     const userRole = profile?.subscription_plan || 'free';
     const userRank = PLAN_RANK[userRole] || 0;
@@ -35,6 +48,7 @@ const IngredientManager = () => {
         if (!formData.name.trim()) newErrors.name = t.ingredients.errorName || 'Введите название материала';
         if (formData.quantity === '' || Number(formData.quantity) < 0) newErrors.quantity = t.ingredients.errorQuantity || 'Количество не может быть отрицательным';
         if (formData.minStock && Number(formData.minStock) < 0) newErrors.minStock = t.ingredients.errorMinStock || 'Мин. остаток не может быть отрицательным';
+        if (formData.packingSize && Number(formData.packingSize) < 0) newErrors.packingSize = t.ingredients.errorPackingSize || 'Размер упаковки не может быть отрицательным';
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -43,13 +57,20 @@ const IngredientManager = () => {
     const openSlide = (ing = null) => {
         if (ing) {
             setFormData({
-                ...ing,
+                id: ing.id,
+                name: ing.name,
+                unit: ing.unit,
                 quantity: ing.quantity.toString(),
                 minStock: ing.minStock ? ing.minStock.toString() : '',
-                pricePerUnit: ing.pricePerUnit ? ing.pricePerUnit.toString() : '0'
+                pricePerUnit: ing.pricePerUnit ? ing.pricePerUnit.toString() : '0',
+                external_code: ing.external_code || '',
+                packingName: ing.packingName || '',
+                packingSize: ing.packingSize ? ing.packingSize.toString() : ''
             });
+            setIsEditing(true);
         } else {
-            setFormData({ id: null, name: '', unit: 'кг', quantity: '0', minStock: '5', pricePerUnit: '0' });
+            setFormData(INITIAL_STATE);
+            setIsEditing(false);
         }
         setErrors({});
         setIsSlideOpen(true);
@@ -67,7 +88,8 @@ const IngredientManager = () => {
             name: formData.name.trim(),
             quantity: Number(formData.quantity) || 0,
             minStock: Number(formData.minStock) || 0,
-            pricePerUnit: Number(formData.pricePerUnit) || 0
+            pricePerUnit: Number(formData.pricePerUnit) || 0,
+            packingSize: Number(formData.packingSize) || 0
         });
 
         if (result.success) {
@@ -253,6 +275,37 @@ const IngredientManager = () => {
                                 </div>
                             </div>
 
+                            {/* Packing Quick Add */}
+                            {ing.packingSize > 0 && (
+                                <div className="mt-1 pt-3 border-t border-[var(--border)] border-dashed flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] font-bold text-[var(--text-light)] uppercase tracking-tighter">
+                                            {t.ingredients.packingTitle || 'Упаковка'}
+                                        </span>
+                                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                            {ing.packingName || 'Упак.'}: {ing.packingSize} {t.unitNames?.[ing.unit] || ing.unit}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const res = await useInventoryStore.getState().incrementIngredientByPack(ing.id);
+                                            if (res.success) {
+                                                const unitName = t.unitNames?.[res.unit] || res.unit;
+                                                addToast(`+ ${res.increment} ${unitName} (${res.packingName || t.ingredients.packingTitle})`, 'success');
+                                                useInventoryStore.getState().logAction(t.common.deliveryLog, `+ ${res.increment} ${unitName} (${res.packingName || t.ingredients.packingTitle}): ${res.ingredientName}`);
+                                            } else {
+                                                addToast(t.common.error || 'Ошибка', 'error');
+                                            }
+                                        }}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition-all shadow-sm hover:translate-y-[-1px] active:translate-y-0"
+                                    >
+                                        <Plus size={14} />
+                                        {t.ingredients.addPack}
+                                    </button>
+                                </div>
+                            )}
+
                             <div className="flex gap-2 pt-3 border-t border-[var(--border)] mt-auto">
                                 <button
                                     className="h-10 w-10 flex items-center justify-center text-[var(--text-secondary)] hover:text-[var(--text-main)] hover:bg-[var(--bg-page)] border border-transparent hover:border-[var(--border)] rounded-lg transition-all"
@@ -263,7 +316,7 @@ const IngredientManager = () => {
                                         }
                                     }}
                                     disabled={ing.quantity <= 0}
-                                    aria-label={`Уменьшить количество ${ing.name}`}
+                                    aria-label={`${t.ingredients.decreaseQuantity} ${ing.name}`}
                                 >
                                     <span className="text-xl font-medium" aria-hidden="true">−</span>
                                 </button>
@@ -273,9 +326,9 @@ const IngredientManager = () => {
                                         updateIngredientQuantity(ing.id, ing.quantity + 1);
                                         addToast(`+1 ${t.unitNames?.[ing.unit] || ing.unit}`, 'info');
                                     }}
-                                    aria-label={`Увеличить количество ${ing.name}`}
+                                    aria-label={`${t.ingredients.increaseQuantity} ${ing.name}`}
                                 >
-                                    <span className="text-xl font-medium" aria-hidden="true">+</span>
+                                    <Plus size={18} aria-hidden="true" />
                                 </button>
                                 <div className="flex-1"></div>
                                 <button
@@ -363,6 +416,74 @@ const IngredientManager = () => {
                             />
                             {errors.minStock && <p id="ingredient-minstock-error" className="error-message mt-1" role="alert">{errors.minStock}</p>}
                         </div>
+                    </div>
+
+                    {/* External Code */}
+                    <div>
+                        <label htmlFor="ingredient-external-code" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.externalCode}</label>
+                        <input
+                            id="ingredient-external-code"
+                            className="input"
+                            placeholder={t.ingredients.externalCodePlaceholder}
+                            value={formData.external_code}
+                            onChange={e => setFormData({ ...formData, external_code: e.target.value })}
+                        />
+                    </div>
+
+                    {/* Packing Fields */}
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/10 rounded-xl border border-purple-100 dark:border-purple-800/50">
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="flex items-center gap-2 text-sm font-bold text-purple-900 dark:text-purple-100">
+                                {t.ingredients.packingTitle}
+                                <div className="group/tooltip relative">
+                                    <HelpCircle size={14} className="text-purple-400 cursor-help transition-colors hover:text-purple-600" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-20 text-center shadow-xl">
+                                        {t.ingredients.packingTooltip}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                </div>
+                            </label>
+                            {!isPro && (
+                                <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-bold uppercase tracking-wider">PRO</span>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="ingredient-packing-name" className="block text-xs font-medium mb-1 text-[var(--text-main)]">{t.ingredients.packingName}</label>
+                                <input
+                                    type="text"
+                                    id="ingredient-packing-name"
+                                    disabled={!isPro}
+                                    className={`input text-sm ${!isPro ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'bg-white'}`}
+                                    value={formData.packingName}
+                                    onChange={e => setFormData({ ...formData, packingName: e.target.value })}
+                                    placeholder={t.ingredients.packingNamePlaceholder}
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="ingredient-packing-size" className="block text-xs font-medium mb-1 text-[var(--text-main)]">{t.ingredients.packingSize}</label>
+                                <input
+                                    type="number"
+                                    id="ingredient-packing-size"
+                                    disabled={!isPro}
+                                    className={`input font-mono text-sm ${errors.packingSize ? 'input-error' : ''} ${!isPro ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'bg-white'}`}
+                                    value={formData.packingSize}
+                                    onChange={e => {
+                                        setFormData({ ...formData, packingSize: e.target.value });
+                                        if (errors.packingSize) setErrors({ ...errors, packingSize: null });
+                                    }}
+                                    placeholder="0"
+                                    aria-describedby={errors.packingSize ? 'ingredient-packing-size-error' : undefined}
+                                    aria-invalid={!!errors.packingSize}
+                                />
+                                {errors.packingSize && <p id="ingredient-packing-size-error" className="error-message mt-1" role="alert">{errors.packingSize}</p>}
+                            </div>
+                        </div>
+                        {!isPro && (
+                            <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-2 font-medium">
+                                {t.ingredients.proOnlyPacking}
+                            </p>
+                        )}
                     </div>
 
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
@@ -486,8 +607,8 @@ const IngredientManager = () => {
                             </div>
                             <p className="mt-2 text-[11px] text-[var(--text-light)]">
                                 {importMode === 'inventory'
-                                    ? 'Текущие остатки будут заменены значениями из файла.'
-                                    : 'Значения из файла будут прибавлены к текущим остаткам.'}
+                                    ? t.common.inventoryModeDesc
+                                    : t.common.deliveryModeDesc}
                             </p>
                         </div>
 
@@ -495,11 +616,13 @@ const IngredientManager = () => {
                             <table className="w-full text-left">
                                 <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
                                     <tr>
-                                        <th className="px-6 py-3">{t.ingredients.code || 'Код'}</th>
+                                        <th className="px-6 py-3">{t.ingredients.externalCode}</th>
                                         <th className="px-6 py-3">{t.ingredients.name}</th>
                                         <th className="px-6 py-3">{t.ingredients.quantity}</th>
                                         <th className="px-6 py-3">{t.ingredients.unit}</th>
                                         <th className="px-6 py-3">{t.ingredients.minStock}</th>
+                                        <th className="px-6 py-3">{t.ingredients.packingName}</th>
+                                        <th className="px-6 py-3">{t.ingredients.packingSize}</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--border)]">
@@ -517,7 +640,7 @@ const IngredientManager = () => {
                                                         <span className="font-bold text-[var(--text-main)]">{item.name}</span>
                                                         {isExisting && (
                                                             <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
-                                                                {t.common.update || 'Обновление'}
+                                                                {t.common.update}
                                                             </span>
                                                         )}
                                                     </div>
@@ -525,6 +648,8 @@ const IngredientManager = () => {
                                                 <td className="px-6 py-4 font-bold">{item.quantity}</td>
                                                 <td className="px-6 py-4 text-[var(--text-secondary)]">{item.unit}</td>
                                                 <td className="px-6 py-4 text-[var(--text-light)]">{item.minStock}</td>
+                                                <td className="px-6 py-4 text-[var(--text-light)]">{item.packingName || '-'}</td>
+                                                <td className="px-6 py-4 text-[var(--text-light)]">{item.packingSize || '-'}</td>
                                             </tr>
                                         );
                                     })}

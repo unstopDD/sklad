@@ -140,7 +140,9 @@ export const ImportService = {
             [t.ingredients.name]: 'name',
             [t.ingredients.quantity]: 'quantity',
             [t.ingredients.unit]: 'unit',
-            [t.ingredients.minStock]: 'minStock'
+            [t.ingredients.minStock]: 'minStock',
+            [t.ingredients.packingName]: 'packingName',
+            [t.ingredients.packingSize]: 'packingSize'
         };
 
         // Also add fallbacks for other languages just in case
@@ -165,7 +167,11 @@ export const ImportService = {
             'Код': 'external_code',
             'Артикул': 'external_code',
             'Code': 'external_code',
-            'External Code': 'external_code'
+            'External Code': 'external_code',
+            'Упаковка': 'packingName',
+            'Packing': 'packingName',
+            'Вместимость': 'packingSize',
+            'Capacity': 'packingSize'
         };
 
         const finalMapping = { ...fallbacks, ...mapping };
@@ -195,7 +201,9 @@ export const ImportService = {
                     quantity: parseFloat(ingredient.quantity) || 0,
                     unit: unit,
                     minStock: parseFloat(ingredient.minStock) || 0,
-                    external_code: ingredient.external_code ? ingredient.external_code.toString().trim() : null
+                    external_code: ingredient.external_code ? ingredient.external_code.toString().trim() : null,
+                    packingName: ingredient.packingName ? ingredient.packingName.toString().trim() : null,
+                    packingSize: parseFloat(ingredient.packingSize) || 0
                 };
             }
             return null;

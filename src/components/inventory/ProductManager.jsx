@@ -707,7 +707,7 @@ const ProductManager = () => {
                                                             ))
                                                         ) : (
                                                             <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">
-                                                                {t.products.noComposition || '⚠️ Без состава'}
+                                                                {t.products.noComposition}
                                                             </span>
                                                         )}
                                                         {item.warnings?.map((w, i) => (

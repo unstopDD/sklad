@@ -268,7 +268,9 @@ export const useInventoryStore = create((set, get) => ({
                 ingredients: ingredientsRes.data.map(i => ({
                     ...i,
                     minStock: i.min_stock,
-                    pricePerUnit: i.price_per_unit || 0
+                    pricePerUnit: i.price_per_unit || 0,
+                    packingName: i.packing_name,
+                    packingSize: i.packing_size
                 })),
                 products: productsRes.data,
                 history: historyRes.data,
@@ -346,6 +348,8 @@ export const useInventoryStore = create((set, get) => ({
             min_stock: ingredient.minStock,
             price_per_unit: ingredient.pricePerUnit || 0,
             external_code: ingredient.external_code || null,
+            packing_name: ingredient.packingName || null,
+            packing_size: Number(ingredient.packingSize) || 0,
             user_id: userId
         };
 
@@ -395,7 +399,9 @@ export const useInventoryStore = create((set, get) => ({
             const newIngredient = {
                 ...data,
                 minStock: data.min_stock,
-                pricePerUnit: data.price_per_unit || 0
+                pricePerUnit: data.price_per_unit || 0,
+                packingName: data.packing_name,
+                packingSize: data.packing_size
             };
 
             set(state => ({ ingredients: [...state.ingredients, newIngredient] }));
@@ -421,6 +427,39 @@ export const useInventoryStore = create((set, get) => ({
             }));
         } else {
             get().addToast('Ошибка обновления остатка', 'error');
+        }
+    },
+
+    incrementIngredientByPack: async (id, packsCount = 1) => {
+        const userId = get().user?.id;
+        if (!userId) return { success: false };
+
+        const ing = get().ingredients.find(i => i.id === id);
+        if (!ing || !ing.packingSize) return { success: false };
+
+        const increment = packsCount * ing.packingSize;
+        const newQuantity = (ing.quantity || 0) + increment;
+
+        const { error } = await supabase
+            .from('ingredients')
+            .update({ quantity: newQuantity })
+            .eq('id', id)
+            .eq('user_id', userId);
+
+        if (!error) {
+            set(state => ({
+                ingredients: state.ingredients.map(i => i.id === id ? { ...i, quantity: newQuantity } : i)
+            }));
+            // We return info to the component so it can handle localized toast
+            return {
+                success: true,
+                increment,
+                unit: ing.unit,
+                packingName: ing.packingName,
+                ingredientName: ing.name
+            };
+        } else {
+            return { success: false, error: 'db_error' };
         }
     },
 
