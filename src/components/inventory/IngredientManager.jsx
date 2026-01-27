@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Search, AlertCircle, Download, Upload, X, CheckCircle2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Search, AlertCircle, Download, Upload, X, CheckCircle2, HelpCircle, Lock } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
@@ -15,13 +15,20 @@ const IngredientManager = () => {
     const [filter, setFilter] = useState('');
     const [editingQty, setEditingQty] = useState(null);
     const [importPreview, setImportPreview] = useState(null);
+    const [importMode, setImportMode] = useState('inventory'); // 'inventory' or 'supply'
+    const [fileTypeMismatch, setFileTypeMismatch] = useState(false);
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
     const fileInputRef = React.useRef(null);
 
     // Form State
-    const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '' });
+    const [formData, setFormData] = useState({ id: null, name: '', unit: 'кг', quantity: '', minStock: '', pricePerUnit: '' });
     const [errors, setErrors] = useState({});
     const [isImportGuideOpen, setIsImportGuideOpen] = useState(false);
+    const { profile, PLAN_RANK } = useInventoryStore();
+    const userRole = profile?.subscription_plan || 'free';
+    const userRank = PLAN_RANK[userRole] || 0;
+    const isPro = userRank >= PLAN_RANK.pro;
+    const canImport = userRank >= PLAN_RANK.starter;
 
     const validate = () => {
         const newErrors = {};
@@ -35,9 +42,14 @@ const IngredientManager = () => {
 
     const openSlide = (ing = null) => {
         if (ing) {
-            setFormData({ ...ing, quantity: ing.quantity.toString(), minStock: ing.minStock ? ing.minStock.toString() : '' });
+            setFormData({
+                ...ing,
+                quantity: ing.quantity.toString(),
+                minStock: ing.minStock ? ing.minStock.toString() : '',
+                pricePerUnit: ing.pricePerUnit ? ing.pricePerUnit.toString() : '0'
+            });
         } else {
-            setFormData({ id: null, name: '', unit: 'кг', quantity: '0', minStock: '5' });
+            setFormData({ id: null, name: '', unit: 'кг', quantity: '0', minStock: '5', pricePerUnit: '0' });
         }
         setErrors({});
         setIsSlideOpen(true);
@@ -54,7 +66,8 @@ const IngredientManager = () => {
             ...formData,
             name: formData.name.trim(),
             quantity: Number(formData.quantity) || 0,
-            minStock: Number(formData.minStock) || 0
+            minStock: Number(formData.minStock) || 0,
+            pricePerUnit: Number(formData.pricePerUnit) || 0
         });
 
         if (result.success) {
@@ -80,6 +93,11 @@ const IngredientManager = () => {
 
         try {
             const rawData = await ImportService.parseFile(file);
+            const detectedType = ImportService.detectFileType(rawData);
+
+            // Warn if it explicitly looks like products
+            setFileTypeMismatch(detectedType === 'products');
+
             const mapped = ImportService.mapToIngredients(rawData, t);
             if (mapped.length > 0) {
                 setImportPreview(mapped);
@@ -97,17 +115,27 @@ const IngredientManager = () => {
         if (!importPreview) return;
 
         let added = 0;
+        let updated = 0;
         let skipped = 0;
 
         for (const item of importPreview) {
-            const res = await addIngredient(item);
-            if (res.success) added++;
-            else skipped++;
+            const res = await addIngredient({
+                ...item,
+                isSupplyMode: importMode === 'supply'
+            });
+            if (res.success) {
+                if (res.updated) updated++;
+                else added++;
+            } else skipped++;
         }
 
-        const msg = (t.ingredients.importSuccess || 'Імпортовано {count} записів').replace('{count}', added.toString());
+        let msg = '';
+        if (added > 0) msg += (t.ingredients.importAdded || 'Добавлено {count} новых').replace('{count}', added.toString()) + '. ';
+        if (updated > 0) msg += (t.ingredients.importUpdated || 'Обновлено {count} существующих').replace('{count}', updated.toString()) + '. ';
+        if (added === 0 && updated === 0) msg = t.common.noData || 'Нет данных для импорта';
         const extra = skipped > 0 ? ` (${skipped} ${t.common.skipped || 'пропущено'})` : '';
-        addToast(msg + extra, added > 0 ? 'success' : 'info');
+
+        addToast(msg + extra, (added > 0 || updated > 0) ? 'success' : 'info');
         setImportPreview(null);
     };
 
@@ -122,23 +150,25 @@ const IngredientManager = () => {
     return (
         <div className="">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-[var(--text-main)]">{t.ingredients.title}</h2>
+                    <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{t.ingredients.title}</h2>
                     <p className="text-[var(--text-secondary)] text-sm">{t.ingredients.desc || 'Управляйте остатками материалов и сырья.'}</p>
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
-                        <AlertCircle size={14} className="text-[var(--primary)]" />
-                        <span>{t.ingredients.importFormat}</span>
-                        <span className="mx-1">•</span>
-                        <button
-                            onClick={() => ExportService.downloadTemplate('materials', t)}
-                            className="text-[var(--primary)] hover:underline font-medium"
-                        >
-                            {t.common.downloadTemplate}
-                        </button>
-                    </div>
+                    {canImport && (
+                        <div className="hidden sm:flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
+                            <AlertCircle size={14} className="text-[var(--primary)]" />
+                            <span>{t.ingredients.importFormat}</span>
+                            <span className="mx-1">•</span>
+                            <button
+                                onClick={() => ExportService.downloadTemplate('materials', t)}
+                                className="text-[var(--primary)] hover:underline font-medium"
+                            >
+                                {t.common.downloadTemplate}
+                            </button>
+                        </div>
+                    )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -146,24 +176,28 @@ const IngredientManager = () => {
                         accept=".xlsx, .xls, .csv"
                         className="hidden"
                     />
-                    <button
-                        onClick={() => setIsImportGuideOpen(true)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
-                        title={t.common.import}
-                    >
-                        <Upload size={18} className="text-[var(--primary)]" />
-                        <span className="hidden sm:inline">{t.common.import}</span>
-                    </button>
-                    <button
-                        onClick={() => setIsExportModalOpen(true)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
-                        title={t.common.export}
-                    >
-                        <Download size={18} className="text-[var(--primary)]" />
-                        <span className="font-bold hidden sm:inline">{t.common.export}</span>
-                    </button>
-                    <button onClick={() => openSlide()} className="btn btn-primary">
-                        <Plus size={18} /> {t.ingredients.addNew}
+                    <div title={canImport ? t.common.import : t.upsell.starterOnly}>
+                        <button
+                            onClick={() => canImport ? setIsImportGuideOpen(true) : null}
+                            className={`btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] transition-all p-2.5 sm:px-4 
+                                ${!canImport ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-light)] hover:border-[var(--primary)]'}`}
+                        >
+                            {canImport ? <Upload size={18} className="text-[var(--primary)]" /> : <Lock size={18} className="text-amber-500" />}
+                            <span className="hidden sm:inline ml-1 font-bold">{t.common.import}</span>
+                        </button>
+                    </div>
+                    <div title={canImport ? t.common.export : t.upsell.starterOnly}>
+                        <button
+                            onClick={() => canImport ? setIsExportModalOpen(true) : null}
+                            className={`btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] transition-all p-2.5 sm:px-4 
+                                ${!canImport ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-light)] hover:border-[var(--primary)]'}`}
+                        >
+                            {canImport ? <Download size={18} className="text-[var(--primary)]" /> : <Lock size={18} className="text-amber-500" />}
+                            <span className="hidden sm:inline ml-1 font-bold">{t.common.export}</span>
+                        </button>
+                    </div>
+                    <button onClick={() => openSlide()} className="btn btn-primary flex-1 sm:flex-initial h-11 shrink-0 px-4 font-black">
+                        <Plus size={20} /> <span className="whitespace-nowrap">{t.ingredients.addNew}</span>
                     </button>
                 </div>
             </div>
@@ -211,6 +245,11 @@ const IngredientManager = () => {
                                     <div className="text-xs text-[var(--text-secondary)] uppercase tracking-wider">
                                         {t.unitNames?.[ing.unit] || ing.unit}
                                     </div>
+                                    {isPro && ing.pricePerUnit > 0 && (
+                                        <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 mt-1">
+                                            Σ {(ing.quantity * ing.pricePerUnit).toLocaleString()} {profile?.currency || 'грн'}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
@@ -287,6 +326,8 @@ const IngredientManager = () => {
                                 if (errors.name) setErrors({ ...errors, name: null });
                             }}
                             required
+                            onInvalid={e => e.target.setCustomValidity(t.ingredients.errorName)}
+                            onInput={e => e.target.setCustomValidity('')}
                             autoFocus
                             aria-describedby={errors.name ? 'ingredient-name-error' : undefined}
                             aria-invalid={!!errors.name}
@@ -324,6 +365,43 @@ const IngredientManager = () => {
                         </div>
                     </div>
 
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-800/50">
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="ingredient-price" className="flex items-center gap-2 text-sm font-bold text-blue-900 dark:text-blue-100">
+                                {t.ingredients.price || 'Цена за единицу'}
+                                <div className="group/tooltip relative">
+                                    <HelpCircle size={14} className="text-blue-400 cursor-help transition-colors hover:text-blue-600" />
+                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-gray-900 text-white text-[10px] rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none transition-opacity z-20 text-center shadow-xl">
+                                        {t.settings.currencyTooltip || 'Изменить валюту можно в настройках профиля (иконка карандаша в боковом меню)'}
+                                        <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                </div>
+                            </label>
+                            {!isPro && (
+                                <span className="text-[10px] px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full font-bold uppercase tracking-wider">PRO</span>
+                            )}
+                        </div>
+                        <div className="relative">
+                            <input
+                                type="number"
+                                id="ingredient-price"
+                                disabled={!isPro}
+                                className={`input font-mono pr-12 text-lg hide-spinners ${!isPro ? 'opacity-50 cursor-not-allowed bg-gray-100' : 'bg-white'}`}
+                                value={formData.pricePerUnit}
+                                onChange={e => setFormData({ ...formData, pricePerUnit: e.target.value })}
+                                placeholder="0.00"
+                            />
+                            <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 font-black text-sm pointer-events-none">
+                                {profile?.currency || 'грн'}
+                            </div>
+                        </div>
+                        {!isPro && (
+                            <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-2 font-medium">
+                                {t.ingredients.proOnlyPrice || 'Доступно только в плане PRO для расчета себестоимости.'}
+                            </p>
+                        )}
+                    </div>
+
                     <div>
                         <label htmlFor="ingredient-quantity" className="block text-sm font-medium mb-2 text-[var(--text-main)]">{t.ingredients.quantity}</label>
                         <input
@@ -337,6 +415,8 @@ const IngredientManager = () => {
                             }}
                             placeholder="0"
                             required
+                            onInvalid={e => e.target.setCustomValidity(t.ingredients.errorQuantity)}
+                            onInput={e => e.target.setCustomValidity('')}
                             aria-describedby={errors.quantity ? 'ingredient-quantity-error' : 'ingredient-quantity-hint'}
                             aria-invalid={!!errors.quantity}
                         />
@@ -370,10 +450,52 @@ const IngredientManager = () => {
                             </button>
                         </div>
 
+                        {/* Import Mode Toggle */}
+                        <div className="px-6 py-4 bg-[var(--bg-page)] border-b border-[var(--border)]">
+                            {fileTypeMismatch && (
+                                <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-3 animate-pulse">
+                                    <AlertCircle className="text-amber-600 shrink-0" size={20} />
+                                    <div>
+                                        <p className="text-sm font-bold text-amber-900 dark:text-amber-100">{t.common.importMismatchWarning}</p>
+                                        <p className="text-xs text-amber-700 dark:text-amber-300">{t.common.importMismatchProducts}</p>
+                                    </div>
+                                </div>
+                            )}
+                            <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">
+                                {t.common.importMode}
+                            </label>
+                            <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-fit">
+                                <button
+                                    onClick={() => setImportMode('inventory')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${importMode === 'inventory'
+                                        ? 'bg-[var(--primary)] text-white shadow-md'
+                                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-page)]'
+                                        }`}
+                                >
+                                    {t.common.inventoryMode}
+                                </button>
+                                <button
+                                    onClick={() => setImportMode('supply')}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${importMode === 'supply'
+                                        ? 'bg-emerald-500 text-white shadow-md'
+                                        : 'text-[var(--text-secondary)] hover:bg-[var(--bg-page)]'
+                                        }`}
+                                >
+                                    {t.common.deliveryMode}
+                                </button>
+                            </div>
+                            <p className="mt-2 text-[11px] text-[var(--text-light)]">
+                                {importMode === 'inventory'
+                                    ? 'Текущие остатки будут заменены значениями из файла.'
+                                    : 'Значения из файла будут прибавлены к текущим остаткам.'}
+                            </p>
+                        </div>
+
                         <div className="flex-1 overflow-y-auto p-0">
                             <table className="w-full text-left">
                                 <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
                                     <tr>
+                                        <th className="px-6 py-3">{t.ingredients.code || 'Код'}</th>
                                         <th className="px-6 py-3">{t.ingredients.name}</th>
                                         <th className="px-6 py-3">{t.ingredients.quantity}</th>
                                         <th className="px-6 py-3">{t.ingredients.unit}</th>
@@ -381,14 +503,31 @@ const IngredientManager = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-[var(--border)]">
-                                    {importPreview.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-[var(--bg-page)]">
-                                            <td className="px-6 py-4 font-bold text-[var(--text-main)]">{item.name}</td>
-                                            <td className="px-6 py-4">{item.quantity}</td>
-                                            <td className="px-6 py-4 text-[var(--text-secondary)]">{item.unit}</td>
-                                            <td className="px-6 py-4 text-[var(--text-light)]">{item.minStock}</td>
-                                        </tr>
-                                    ))}
+                                    {importPreview.map((item, idx) => {
+                                        const isExisting = ingredients.find(i =>
+                                            (item.external_code && i.external_code === item.external_code) ||
+                                            (i.name.trim().toLowerCase() === item.name.trim().toLowerCase())
+                                        );
+
+                                        return (
+                                            <tr key={idx} className={`hover:bg-[var(--bg-page)] ${isExisting ? 'bg-amber-50/30 dark:bg-amber-900/5' : ''}`}>
+                                                <td className="px-6 py-4 font-mono text-[11px] text-[var(--text-light)]">{item.external_code || '-'}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-col">
+                                                        <span className="font-bold text-[var(--text-main)]">{item.name}</span>
+                                                        {isExisting && (
+                                                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider">
+                                                                {t.common.update || 'Обновление'}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4 font-bold">{item.quantity}</td>
+                                                <td className="px-6 py-4 text-[var(--text-secondary)]">{item.unit}</td>
+                                                <td className="px-6 py-4 text-[var(--text-light)]">{item.minStock}</td>
+                                            </tr>
+                                        );
+                                    })}
                                 </tbody>
                             </table>
                         </div>

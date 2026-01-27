@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useLang, LangProvider } from './LangContext';
-import { languages } from './translations';
+import { useLang } from '../../i18n';
+import { languages } from '../../i18n/translations';
 import {
     ChevronDown,
     Check,
@@ -17,7 +17,7 @@ import {
 
 // Language Selector Component
 const LanguageSelector = () => {
-    const { lang, switchLanguage } = useLang();
+    const { lang, setLang } = useLang();
     const [isOpen, setIsOpen] = useState(false);
 
     const currentLang = languages.find(l => l.code === lang);
@@ -41,7 +41,7 @@ const LanguageSelector = () => {
                             <button
                                 key={language.code}
                                 onClick={() => {
-                                    switchLanguage(language.code);
+                                    setLang(language.code);
                                     setIsOpen(false);
                                 }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-700 transition-colors text-left ${lang === language.code ? 'bg-slate-700/50' : ''
@@ -61,7 +61,8 @@ const LanguageSelector = () => {
 
 // Navigation Component
 const Navigation = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
     const [scrolled, setScrolled] = useState(false);
 
     useEffect(() => {
@@ -121,7 +122,8 @@ const Navigation = () => {
 
 // Hero Section
 const Hero = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     return (
         <section className="relative min-h-screen flex items-center pt-20 overflow-hidden">
@@ -242,7 +244,8 @@ const Hero = () => {
 
 // Problems Section
 const Problems = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     return (
         <section className="py-20 sm:py-32 bg-slate-900">
@@ -273,7 +276,8 @@ const Problems = () => {
 
 // Features Section
 const Features = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     const icons = [
         <Package className="text-indigo-400" size={32} />,
@@ -312,7 +316,8 @@ const Features = () => {
 
 // How It Works Section - Slideshow with Real Screenshots
 const HowItWorks = () => {
-    const { t, lang } = useLang();
+    const { t: fullT, lang } = useLang();
+    const t = fullT.landing;
     const [activeStep, setActiveStep] = useState(0);
 
     // Screenshot map based on language and step type
@@ -463,7 +468,8 @@ const HowItWorks = () => {
 
 // Use Cases Section
 const UseCases = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     return (
         <section className="py-20 sm:py-32 bg-gradient-to-b from-indigo-950 to-slate-900">
@@ -490,7 +496,8 @@ const UseCases = () => {
 
 // Pricing Section
 const Pricing = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     const plans = [
         { key: 'free', data: t.pricing.free },
@@ -571,7 +578,8 @@ const Pricing = () => {
 
 // Final CTA Section
 const FinalCTA = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     return (
         <section className="py-20 sm:py-32 bg-gradient-to-b from-slate-900 to-indigo-950">
@@ -597,7 +605,8 @@ const FinalCTA = () => {
 
 // Footer
 const Footer = () => {
-    const { t } = useLang();
+    const { t: fullT } = useLang();
+    const t = fullT.landing;
 
     return (
         <footer className="py-8 bg-slate-950 border-t border-slate-800">
@@ -638,9 +647,7 @@ const LandingPageContent = () => {
 
 const LandingPage = () => {
     return (
-        <LangProvider>
-            <LandingPageContent />
-        </LangProvider>
+        <LandingPageContent />
     );
 };
 

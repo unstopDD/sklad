@@ -66,7 +66,7 @@ const Dashboard = () => {
     const lowProducts = StockFilter.getLowProducts(products, activeItemNames);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
 
             {/* Onboarding for empty warehouse */}
             {showOnboarding && (

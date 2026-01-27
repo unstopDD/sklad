@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download, Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, Edit2, Package, Search, ChevronDown, ChevronUp, Download, Upload, X, CheckCircle2, AlertCircle, Lock } from 'lucide-react';
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import { ImportService } from '../../utils/ImportService';
@@ -9,12 +9,18 @@ import ImportGuideModal from '../ui/ImportGuideModal';
 import { useLang } from '../../i18n';
 
 const ProductManager = () => {
-    const { products, ingredients, units, addProduct, removeProduct, addIngredient, addToast } = useInventoryStore();
+    const { products, ingredients, units, addProduct, removeProduct, addIngredient, addToast, calculateProductCost, profile, PLAN_RANK } = useInventoryStore();
+    const userRole = profile?.subscription_plan || 'free';
+    const userRank = PLAN_RANK[userRole] || 0;
+    const isPro = userRank >= PLAN_RANK.pro;
+    const canImport = userRank >= PLAN_RANK.starter;
     const { t } = useLang();
     const [isSlideOpen, setIsSlideOpen] = useState(false);
     const [filter, setFilter] = useState('');
     const [expandedRecipe, setExpandedRecipe] = useState(null);
     const [importPreview, setImportPreview] = useState(null);
+    const [importMode, setImportMode] = useState('inventory'); // 'inventory' or 'supply'
+    const [fileTypeMismatch, setFileTypeMismatch] = useState(false);
     const fileInputRef = React.useRef(null);
 
     // Form state
@@ -112,7 +118,14 @@ const ProductManager = () => {
 
         try {
             const rawData = await ImportService.parseFile(file);
+            const detectedType = ImportService.detectFileType(rawData);
+
             const mapped = ImportService.mapToProducts(rawData, t, ingredients);
+
+            // Smarter detection: if it's explicitly materials OR if it's unknown but ALL products have empty recipes
+            const allEmptyRecipes = mapped.length > 0 && mapped.every(item => !item.recipe || item.recipe.length === 0);
+            setFileTypeMismatch(detectedType === 'materials' || (detectedType === 'unknown' && allEmptyRecipes));
+
             if (mapped.length > 0) {
                 setImportPreview(mapped);
             } else {
@@ -129,6 +142,7 @@ const ProductManager = () => {
         if (!importPreview) return;
 
         let added = 0;
+        let updated = 0;
         let skipped = 0;
 
         for (const item of importPreview) {
@@ -138,21 +152,18 @@ const ProductManager = () => {
                 if (r.ingredientId) {
                     processedRecipe.push(r);
                 } else if (r.ingName) {
-                    // Ingredient not found by ID, try finding by name again (could have been added in this loop)
                     const latestIngredients = useInventoryStore.getState().ingredients;
                     const existing = latestIngredients.find(i => i.name.toLowerCase() === r.ingName.toLowerCase());
 
                     if (existing) {
                         processedRecipe.push({ ingredientId: existing.id, amount: r.amount });
                     } else {
-                        // Create NEW ingredient
                         const res = await addIngredient({
                             name: r.ingName,
                             quantity: 0,
-                            unit: 'кг', // Default unit
+                            unit: 'кг',
                             minStock: 0
                         });
-
                         if (res.success && res.ingredient) {
                             processedRecipe.push({ ingredientId: res.ingredient.id, amount: r.amount });
                         }
@@ -161,14 +172,24 @@ const ProductManager = () => {
             }
 
             // 2. Add product with finalized recipe
-            const res = await addProduct({ ...item, recipe: processedRecipe });
-            if (res.success) added++;
-            else skipped++;
+            const res = await addProduct({
+                ...item,
+                recipe: processedRecipe,
+                isSupplyMode: importMode === 'supply'
+            });
+            if (res.success) {
+                if (res.updated) updated++;
+                else added++;
+            } else skipped++;
         }
 
-        const msg = (t.products.importSuccess || 'Імпортовано {count} записів').replace('{count}', added.toString());
+        let msg = '';
+        if (added > 0) msg += (t.products.importAdded || 'Добавлено {count} новых').replace('{count}', added.toString()) + '. ';
+        if (updated > 0) msg += (t.products.importUpdated || 'Обновлено {count} существующих').replace('{count}', updated.toString()) + '. ';
+        if (added === 0 && updated === 0) msg = t.common.noData || 'Нет данных для импорта';
         const extra = skipped > 0 ? ` (${skipped} ${t.common.skipped || 'пропущено'})` : '';
-        addToast(msg + extra, added > 0 ? 'success' : 'info');
+
+        addToast(msg + extra, (added > 0 || updated > 0) ? 'success' : 'info');
         setImportPreview(null);
     };
 
@@ -179,25 +200,27 @@ const ProductManager = () => {
     return (
         <div className="">
             {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <div>
-                    <h2 className="text-xl font-bold text-[var(--text-main)]">{t.products.title}</h2>
+                    <h2 className="text-2xl font-black text-[var(--text-main)] tracking-tight">{t.products.title}</h2>
                     <p className="text-[var(--text-secondary)] text-sm">
                         {t.products.desc || 'Управляйте составом ваших изделий.'}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
-                        <AlertCircle size={14} className="text-[var(--primary)]" />
-                        <span>{t.products.importFormat}</span>
-                        <span className="mx-1">•</span>
-                        <button
-                            onClick={() => ExportService.downloadTemplate('products', t)}
-                            className="text-[var(--primary)] hover:underline font-medium"
-                        >
-                            {t.common.downloadTemplate}
-                        </button>
-                    </div>
+                    {canImport && (
+                        <div className="hidden sm:flex items-center gap-1.5 mt-1 text-[11px] text-[var(--text-light)]">
+                            <AlertCircle size={14} className="text-[var(--primary)]" />
+                            <span>{t.products.importFormat}</span>
+                            <span className="mx-1">•</span>
+                            <button
+                                onClick={() => ExportService.downloadTemplate('products', t)}
+                                className="text-[var(--primary)] hover:underline font-medium"
+                            >
+                                {t.common.downloadTemplate}
+                            </button>
+                        </div>
+                    )}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
                     <input
                         type="file"
                         ref={fileInputRef}
@@ -205,24 +228,28 @@ const ProductManager = () => {
                         accept=".xlsx, .xls, .csv"
                         className="hidden"
                     />
-                    <button
-                        onClick={() => setIsImportGuideOpen(true)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
-                        title={t.common.import}
-                    >
-                        <Upload size={18} className="text-[var(--primary)]" />
-                        <span className="hidden sm:inline">{t.common.import}</span>
-                    </button>
-                    <button
-                        onClick={() => setIsExportModalOpen(true)}
-                        className="btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] hover:bg-[var(--primary-light)] hover:border-[var(--primary)] transition-all"
-                        title={t.common.export}
-                    >
-                        <Download size={18} className="text-[var(--primary)]" />
-                        <span className="font-bold hidden sm:inline">{t.common.export}</span>
-                    </button>
-                    <button onClick={() => openSlide()} className="btn btn-primary">
-                        <Plus size={18} /> {t.products.addNew}
+                    <div title={canImport ? t.common.import : t.upsell.starterOnly}>
+                        <button
+                            onClick={() => canImport ? setIsImportGuideOpen(true) : null}
+                            className={`btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] transition-all p-2.5 sm:px-4 
+                                ${!canImport ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-light)] hover:border-[var(--primary)]'}`}
+                        >
+                            {canImport ? <Upload size={18} className="text-[var(--primary)]" /> : <Lock size={18} className="text-amber-500" />}
+                            <span className="hidden sm:inline ml-1 font-bold">{t.common.import}</span>
+                        </button>
+                    </div>
+                    <div title={canImport ? t.common.export : t.upsell.starterOnly}>
+                        <button
+                            onClick={() => canImport ? setIsExportModalOpen(true) : null}
+                            className={`btn bg-[var(--bg-card)] text-[var(--text-secondary)] border-2 border-[var(--border)] transition-all p-2.5 sm:px-4 
+                                ${!canImport ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[var(--primary-light)] hover:border-[var(--primary)]'}`}
+                        >
+                            {canImport ? <Download size={18} className="text-[var(--primary)]" /> : <Lock size={18} className="text-amber-500" />}
+                            <span className="font-bold hidden sm:inline ml-1">{t.common.export}</span>
+                        </button>
+                    </div>
+                    <button onClick={() => openSlide()} className="btn btn-primary flex-1 sm:flex-initial h-11 shrink-0 px-4 font-black">
+                        <Plus size={20} /> <span className="whitespace-nowrap">{t.products.addNew}</span>
                     </button>
                 </div>
             </div>
@@ -252,6 +279,13 @@ const ProductManager = () => {
                                 <span className="text-[13px] font-mono text-[var(--text-light)]">
                                     {product.recipe?.length || 0} {t.products.components}
                                 </span>
+                                {isPro && (
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded">
+                                            {t.ingredients.cost || 'Себест.'}: {calculateProductCost(product.id).toLocaleString()} {profile?.currency || 'грн'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                             <div className="flex flex-col items-end gap-0.5">
                                 <div className="text-2xl font-extrabold font-mono text-[var(--text-main)] leading-none">{product.quantity || 0}</div>
@@ -332,6 +366,8 @@ const ProductManager = () => {
                                 if (errors.name) setErrors({ ...errors, name: null });
                             }}
                             required
+                            onInvalid={e => e.target.setCustomValidity(t.products.errorName)}
+                            onInput={e => e.target.setCustomValidity('')}
                             autoFocus
                             aria-describedby={errors.name ? 'product-name-error' : undefined}
                             aria-invalid={!!errors.name}
@@ -371,10 +407,10 @@ const ProductManager = () => {
                                         <div className="text-blue-600 dark:text-blue-400 text-xl">💡</div>
                                     </div>
                                     <p className="text-sm font-medium text-[var(--text-secondary)]">
-                                        {t.products.recipeEmptyTitle || 'Состав продукта пуст'}
+                                        {t.products.compositionEmptyTitle || 'Состав продукта пуст'}
                                     </p>
                                     <p className="text-xs text-[var(--text-light)]">
-                                        {t.products.recipeEmptyDesc || 'Добавьте сырье, из которого производится этот продукт'}
+                                        {t.products.compositionEmptyDesc || 'Добавьте сырье, из которого производится этот продукт'}
                                     </p>
                                 </div>
                                 <button
@@ -466,6 +502,19 @@ const ProductManager = () => {
                                         </div>
                                     ))}
                                 </div>
+                                {isPro && (
+                                    <div className="mt-4 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl border border-emerald-100 dark:border-emerald-800/50 flex justify-between items-center">
+                                        <span className="text-sm font-bold text-emerald-900 dark:text-emerald-100">
+                                            {t.products.totalCompositionCost || 'Итого себестоимость'}:
+                                        </span>
+                                        <span className="text-lg font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                                            {formData.recipe.reduce((total, item) => {
+                                                const ing = ingredients.find(i => i.id === item.ingredientId);
+                                                return total + (ing?.pricePerUnit || 0) * item.amount;
+                                            }, 0).toLocaleString()} {profile?.currency || 'грн'}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -571,76 +620,125 @@ const ProductManager = () => {
             />
 
             {/* Import Preview Modal */}
-            {importPreview && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95">
-                        <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
-                            <div>
-                                <h3 className="text-xl font-bold text-[var(--text-main)]">{t.products.importPreview || 'Предварительный просмотр'}</h3>
-                                <p className="text-sm text-[var(--text-secondary)]">{t.products.importConfirm || 'Подтвердите импорт данных'}</p>
-                            </div>
-                            <div className="flex gap-2 items-center">
-                                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
-                                    <AlertCircle size={14} />
-                                    <span>{t.products.importFormatTip || (t.lang === 'uk' ? 'Формат складу: "Назва: Кількість, ..."' : 'Формат состава: "Название: Количество, ..."')}</span>
+            {
+                importPreview && (
+                    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden animate-in zoom-in-95">
+                            <div className="p-6 border-b border-[var(--border)] flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-xl font-bold text-[var(--text-main)]">{t.products.importPreview}</h3>
+                                    <p className="text-sm text-[var(--text-secondary)]">{t.products.importConfirm}</p>
                                 </div>
-                                <button onClick={() => setImportPreview(null)} className="p-2 hover:bg-[var(--bg-page)] rounded-lg text-[var(--text-secondary)]">
-                                    <X size={20} />
+                                <div className="flex gap-2 items-center">
+                                    <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg text-xs text-blue-700 dark:text-blue-300">
+                                        <AlertCircle size={14} />
+                                        <span>{t.products.importFormatTip}</span>
+                                    </div>
+                                    <button onClick={() => setImportPreview(null)} className="p-2 hover:bg-[var(--bg-page)] rounded-lg text-[var(--text-secondary)]">
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Import Mode Toggle */}
+                            <div className="px-6 py-4 bg-[var(--bg-page)] border-b border-[var(--border)]">
+                                {fileTypeMismatch && (
+                                    <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl flex gap-3 animate-pulse">
+                                        <AlertCircle className="text-amber-600 shrink-0" size={20} />
+                                        <div>
+                                            <p className="text-sm font-bold text-amber-900 dark:text-amber-100">{t.common.importMismatchWarning}</p>
+                                            <p className="text-xs text-amber-700 dark:text-amber-300">{t.common.importMismatchMaterials}</p>
+                                        </div>
+                                    </div>
+                                )}
+                                <label className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider mb-2 block">
+                                    {t.common.importMode}
+                                </label>
+                                <div className="flex p-1 bg-[var(--bg-card)] border border-[var(--border)] rounded-xl w-fit">
+                                    <button
+                                        onClick={() => setImportMode('inventory')}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${importMode === 'inventory'
+                                            ? 'bg-[var(--primary)] text-white shadow-md'
+                                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-page)]'
+                                            }`}
+                                    >
+                                        {t.common.inventoryMode}
+                                    </button>
+                                    <button
+                                        onClick={() => setImportMode('supply')}
+                                        className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${importMode === 'supply'
+                                            ? 'bg-emerald-500 text-white shadow-md'
+                                            : 'text-[var(--text-secondary)] hover:bg-[var(--bg-page)]'
+                                            }`}
+                                    >
+                                        {t.common.deliveryMode}
+                                    </button>
+                                </div>
+                                <p className="mt-2 text-[11px] text-[var(--text-light)]">
+                                    {importMode === 'inventory'
+                                        ? 'Текущие остатки будут заменены значениями из файла.'
+                                        : 'Значения из файла будут прибавлены к текущим остаткам.'}
+                                </p>
+                            </div>
+
+                            <div className="flex-1 overflow-y-auto p-0">
+                                <table className="w-full text-left">
+                                    <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
+                                        <tr>
+                                            <th className="px-6 py-3">{t.products.name}</th>
+                                            <th className="px-6 py-3">{t.products.quantity}</th>
+                                            <th className="px-6 py-3">{t.products.composition}</th>
+                                            <th className="px-6 py-3"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-[var(--border)]">
+                                        {importPreview.map((item, idx) => (
+                                            <tr key={idx} className="hover:bg-[var(--bg-page)]">
+                                                <td className="px-6 py-4 font-bold text-[var(--text-main)]">{item.name}</td>
+                                                <td className="px-6 py-4">{item.quantity} {item.unit}</td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {item.recipe && item.recipe.length > 0 ? (
+                                                            item.recipe.map((r, i) => (
+                                                                <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${r.ingredientId ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
+                                                                    {r.ingredientId ? getIngredientName(r.ingredientId) : r.ingName}: {r.amount}
+                                                                    {!r.ingredientId && <Plus size={8} />}
+                                                                </span>
+                                                            ))
+                                                        ) : (
+                                                            <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold italic">
+                                                                {t.products.noComposition || '⚠️ Без состава'}
+                                                            </span>
+                                                        )}
+                                                        {item.warnings?.map((w, i) => (
+                                                            <span key={i} className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-100 flex items-center gap-1">
+                                                                <AlertCircle size={10} /> {w}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    {item.warnings && <AlertCircle className="text-orange-500" size={18} title={item.warnings.join('\n')} />}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-page)] flex justify-end gap-3">
+                                <button onClick={() => setImportPreview(null)} className="btn btn-secondary">
+                                    {t.common.cancel}
+                                </button>
+                                <button onClick={confirmImport} className="btn btn-primary shadow-lg shadow-blue-500/20">
+                                    <CheckCircle2 size={18} />
+                                    {t.common.confirm} ({importPreview.length})
                                 </button>
                             </div>
                         </div>
-
-                        <div className="flex-1 overflow-y-auto p-0">
-                            <table className="w-full text-left">
-                                <thead className="sticky top-0 bg-[var(--bg-page)] text-[var(--text-secondary)] text-xs uppercase tracking-wider">
-                                    <tr>
-                                        <th className="px-6 py-3">{t.products.name}</th>
-                                        <th className="px-6 py-3">{t.products.quantity}</th>
-                                        <th className="px-6 py-3">{t.products.composition}</th>
-                                        <th className="px-6 py-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-[var(--border)]">
-                                    {importPreview.map((item, idx) => (
-                                        <tr key={idx} className="hover:bg-[var(--bg-page)]">
-                                            <td className="px-6 py-4 font-bold text-[var(--text-main)]">{item.name}</td>
-                                            <td className="px-6 py-4">{item.quantity} {item.unit}</td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex flex-wrap gap-1">
-                                                    {item.recipe.map((r, i) => (
-                                                        <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded border flex items-center gap-1 ${r.ingredientId ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                                            {r.ingredientId ? getIngredientName(r.ingredientId) : r.ingName}: {r.amount}
-                                                            {!r.ingredientId && <Plus size={8} />}
-                                                        </span>
-                                                    ))}
-                                                    {item.warnings?.map((w, i) => (
-                                                        <span key={i} className="text-[10px] bg-red-50 text-red-700 px-1.5 py-0.5 rounded border border-red-100 flex items-center gap-1">
-                                                            <AlertCircle size={10} /> {w}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                {item.warnings && <AlertCircle className="text-orange-500" size={18} title={item.warnings.join('\n')} />}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div className="p-6 border-t border-[var(--border)] bg-[var(--bg-page)] flex justify-end gap-3">
-                            <button onClick={() => setImportPreview(null)} className="btn btn-secondary">
-                                {t.common.cancel}
-                            </button>
-                            <button onClick={confirmImport} className="btn btn-primary shadow-lg shadow-blue-500/20">
-                                <CheckCircle2 size={18} />
-                                {t.common.confirm} ({importPreview.length})
-                            </button>
-                        </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Import Guide Modal */}
             <ImportGuideModal
@@ -654,7 +752,7 @@ const ProductManager = () => {
                     fileInputRef.current?.click();
                 }}
             />
-        </div>
+        </div >
     );
 };
 

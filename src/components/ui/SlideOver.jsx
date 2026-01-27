@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
+import { useLang } from '../../i18n';
 
 const SlideOver = ({ isOpen, onClose, title, children }) => {
+    const { t } = useLang();
     const panelRef = useRef(null);
     const closeButtonRef = useRef(null);
     const titleId = `slideover-title-${React.useId()}`;
@@ -78,7 +80,7 @@ const SlideOver = ({ isOpen, onClose, title, children }) => {
                         ref={closeButtonRef}
                         onClick={onClose}
                         className="slide-over-close"
-                        aria-label="Закрыть панель"
+                        aria-label={t.common.cancel}
                     >
                         <X size={24} aria-hidden="true" />
                     </button>

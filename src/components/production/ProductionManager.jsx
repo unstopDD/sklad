@@ -32,13 +32,13 @@ const ProductionManager = () => {
     };
 
     const { can, missing } = canProduce();
-    const getIngredientName = (id) => ingredients.find(i => i.id === id)?.name || 'Неизвестно';
+    const getIngredientName = (id) => ingredients.find(i => i.id === id)?.name || t.production.unknown;
     const getIngredientStock = (id) => ingredients.find(i => i.id === id)?.quantity || 0;
 
     const validate = () => {
         const newErrors = {};
-        if (!selectedProduct) newErrors.selectedProduct = 'Выберите продукт';
-        if (quantity <= 0) newErrors.quantity = 'Количество должно быть больше 0';
+        if (!selectedProduct) newErrors.selectedProduct = t.production.selectPrompt;
+        if (quantity <= 0) newErrors.quantity = t.production.qtyError;
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -48,7 +48,7 @@ const ProductionManager = () => {
         if (!validate()) return;
 
         if (!can) {
-            addToast(t.production.notEnoughMaterials || 'Недостаточно сырья', 'error');
+            addToast(t.production.notEnoughMaterials, 'error');
             return;
         }
 
@@ -74,15 +74,15 @@ const ProductionManager = () => {
                     {t.nav.production}
                 </h2>
                 <p className="text-[var(--text-secondary)] text-sm max-w-2xl">
-                    {t.production.desc || 'Выберите продукт для производства. Компоненты будут автоматически списаны со склада.'}
+                    {t.production.desc}
                 </p>
             </div>
 
             {products.length === 0 ? (
                 <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-[var(--radius)] text-center py-16">
                     <Factory size={48} className="mx-auto mb-4 text-[var(--text-light)] opacity-30" />
-                    <p className="font-medium text-[var(--text-secondary)]">{t.production.noProducts || 'Нет доступных продуктов'}</p>
-                    <p className="text-sm text-[var(--text-light)] mt-1">{t.production.createComposition || 'Создайте хотя бы один продукт с составом'}</p>
+                    <p className="font-medium text-[var(--text-secondary)]">{t.production.noProducts}</p>
+                    <p className="text-sm text-[var(--text-light)] mt-1">{t.production.createComposition}</p>
                 </div>
             ) : (
                 <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -150,7 +150,7 @@ const ProductionManager = () => {
                                 `}
                             >
                                 <Factory size={20} />
-                                <span>{t.production.registerProduction || 'Зафиксировать производство'}</span>
+                                <span>{t.production.registerProduction}</span>
                             </button>
                         </div>
                     </div>
@@ -173,9 +173,9 @@ const ProductionManager = () => {
                                         )}
                                         <div>
                                             <h3 className={`font-bold ${can ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                                {can ? (t.production.possible || 'Производство возможно') : (t.production.notEnoughMaterials || 'Недостаточно сырья')}
+                                                {can ? t.production.possible : t.production.notEnoughMaterials}
                                             </h3>
-                                            <p className="text-xs opacity-80 text-[var(--text-secondary)]">{t.production.stockCheck || 'Проверка остатков'}</p>
+                                            <p className="text-xs opacity-80 text-[var(--text-secondary)]">{t.production.stockCheck}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -184,7 +184,7 @@ const ProductionManager = () => {
                                     {product.recipe?.length > 0 ? (
                                         <>
                                             <h4 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-secondary)] mb-4">
-                                                {t.production.writeOff || 'Списание со склада'} ({product.recipe.length} поз.)
+                                                {t.production.writeOff} ({product.recipe.length} поз.)
                                             </h4>
                                             <div className="space-y-3">
                                                 {product.recipe.map((item, idx) => {
@@ -206,7 +206,7 @@ const ProductionManager = () => {
                                                                         -{required}
                                                                     </div>
                                                                     <div className="text-[10px] text-[var(--text-secondary)]">
-                                                                        дост: {available}
+                                                                        {t.production.available}: {available}
                                                                     </div>
                                                                 </div>
                                                                 <span className="text-xs text-[var(--text-secondary)] w-6">{t.unitNames?.[ingredients.find(i => i.id === item.ingredientId)?.unit] || ingredients.find(i => i.id === item.ingredientId)?.unit}</span>
@@ -218,7 +218,7 @@ const ProductionManager = () => {
                                         </>
                                     ) : (
                                         <div className="text-center py-6 text-[var(--text-secondary)] bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-dashed border-[var(--border)]">
-                                            {t.production.noComposition || 'У этого продукта нет состава'}
+                                            {t.production.noComposition}
                                         </div>
                                     )}
                                 </div>
@@ -226,9 +226,9 @@ const ProductionManager = () => {
                         ) : (
                             <div className="bg-[var(--bg-page)] rounded-[var(--radius)] border border-dashed border-[var(--border)] p-8 text-center h-full flex flex-col items-center justify-center min-h-[300px]">
                                 <Factory size={48} className="text-[var(--text-light)] opacity-20 mb-4" />
-                                <p className="text-[var(--text-secondary)] font-medium">{t.production.selectProduct || 'Выберите продукт'}</p>
+                                <p className="text-[var(--text-secondary)] font-medium">{t.production.selectProduct}</p>
                                 <p className="text-sm text-[var(--text-light)] max-w-xs mx-auto mt-2">
-                                    {t.production.previewDesc || 'Справа отобразится расчет необходимых компонентов и статус доступности'}
+                                    {t.production.previewDesc}
                                 </p>
                             </div>
                         )}

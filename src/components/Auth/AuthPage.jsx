@@ -130,6 +130,17 @@ const AuthPage = () => {
                             placeholder="your@email.com"
                             value={email}
                             onChange={e => setEmail(e.target.value)}
+                            onInvalid={e => {
+                                e.target.setCustomValidity('');
+                                if (!e.target.validity.valid) {
+                                    if (e.target.validity.valueMissing) {
+                                        e.target.setCustomValidity(t.auth.emailRequired);
+                                    } else if (e.target.validity.typeMismatch) {
+                                        e.target.setCustomValidity(t.auth.emailInvalid);
+                                    }
+                                }
+                            }}
+                            onInput={e => e.target.setCustomValidity('')}
                             className="w-full px-4 py-3.5 border-2 border-[var(--border)] dark:bg-[var(--bg-page)] dark:text-[var(--text-main)] rounded-lg text-base outline-none transition-all placeholder-gray-400 focus:border-[#667eea] focus:ring-4 focus:ring-blue-500/10"
                         />
                     </div>
@@ -147,6 +158,17 @@ const AuthPage = () => {
                             placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
+                            onInvalid={e => {
+                                e.target.setCustomValidity('');
+                                if (!e.target.validity.valid) {
+                                    if (e.target.validity.valueMissing) {
+                                        e.target.setCustomValidity(t.auth.passwordRequired);
+                                    } else if (e.target.validity.tooShort) {
+                                        e.target.setCustomValidity(t.auth.passwordTooShort);
+                                    }
+                                }
+                            }}
+                            onInput={e => e.target.setCustomValidity('')}
                             className="w-full px-4 py-3.5 border-2 border-[var(--border)] dark:bg-[var(--bg-page)] dark:text-[var(--text-main)] rounded-lg text-base outline-none transition-all placeholder-gray-400 focus:border-[#667eea] focus:ring-4 focus:ring-blue-500/10"
                         />
                     </div>

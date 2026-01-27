@@ -9,14 +9,11 @@ export const ExportService = {
      * @param {Array} data - Array of objects to export
      * @param {Object} options - Export options (filename, sheetName, headers)
      */
-    exportToExcel: (data, { filename = 'export', sheetName = 'Sheet1', headers = null, format = 'xlsx' }) => {
+    exportToExcel: (data, { filename = 'export', sheetName = 'Sheet1', headers = null, format = 'xlsx', productionName = '' }) => {
         try {
-            // 1. Create worksheet
-            let ws;
+            // 1. Prepare data
             let finalData;
-
             if (headers) {
-                // If custom headers provided, map data to match headers
                 finalData = data.map(item => {
                     const mappedItem = {};
                     Object.keys(headers).forEach(key => {
@@ -24,33 +21,55 @@ export const ExportService = {
                     });
                     return mappedItem;
                 });
-                ws = XLSX.utils.json_to_sheet(finalData);
             } else {
                 finalData = data;
-                ws = XLSX.utils.json_to_sheet(finalData);
             }
 
-            // 2. Set Column Widths (Auto-fit only for original Excel)
+            // 2. Create worksheet
+            const ws = XLSX.utils.json_to_sheet(finalData);
+
+            // 3. Set Styling and Metadata (XLSX only)
             if (format === 'xlsx') {
+                // Auto-fit column widths with extra space
                 const colWidths = Object.keys(finalData[0] || {}).map(key => {
                     const maxLen = Math.max(
                         key.toString().length,
-                        ...finalData.map(row => (row[key] || '').toString().length)
+                        ...finalData.map(row => (row[key]?.toString() || '').length)
                     );
-                    return { wch: maxLen + 2 };
+                    return { wch: Math.min(maxLen + 5, 50) };
                 });
                 ws['!cols'] = colWidths;
+
+                // Add Auto-filters
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                ws['!autofilter'] = { ref: XLSX.utils.encode_range(range) };
+
+                // Freeze Top Row
+                ws['!views'] = [{ state: 'frozen', ySplit: 1, xSplit: 0, topLeftCell: 'A2', activePane: 'bottomLeft' }];
             }
 
-            // 3. Create workbook
+            // 4. Create workbook
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-            // 4. Write file and trigger download
-            const bookType = format === 'csv' ? 'csv' : 'xlsx';
-            const fileNameWithExt = `${filename}_${new Date().toISOString().split('T')[0]}.${format}`;
+            // 5. Write file
+            const dateStr = new Date().toISOString().split('T')[0];
+            const fileNameWithExt = `${filename}_${dateStr}.${format}`;
 
-            XLSX.writeFile(wb, fileNameWithExt, { bookType });
+            if (format === 'csv') {
+                // For CSV, add UTF-8 BOM so Excel opens it correctly in columns
+                const csvContent = XLSX.utils.sheet_to_csv(ws, { FS: ';' });
+                const bom = '\uFEFF';
+                const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileNameWithExt;
+                a.click();
+                URL.revokeObjectURL(url);
+            } else {
+                XLSX.writeFile(wb, fileNameWithExt, { bookType: 'xlsx' });
+            }
 
             return true;
         } catch (error) {
@@ -63,6 +82,28 @@ export const ExportService = {
      * Specialized export for Ingredients
      */
     exportIngredients: (ingredients, t, format = 'xlsx') => {
+        if (format === '1c') {
+            const headers = {
+                id: 'Код',
+                name: 'Наименование',
+                quantity: 'Количество',
+                unit: 'Ед.Изм.'
+            };
+            const data = ingredients.map(i => ({
+                id: i.id.substring(0, 8), // Short ID for 1C
+                name: i.name,
+                quantity: i.quantity,
+                unit: i.unit
+            }));
+            return ExportService.exportToExcel(data, {
+                filename: `1C_Materials`,
+                sheetName: '1C',
+                headers,
+                format: 'csv',
+                productionName: t.profile?.production_name
+            });
+        }
+
         const headers = {
             name: t.ingredients.name,
             quantity: t.ingredients.quantity,
@@ -83,7 +124,8 @@ export const ExportService = {
             filename: `Materials_${t.profile?.production_name || 'Production'}`,
             sheetName: t.ingredients.title,
             headers,
-            format
+            format,
+            productionName: t.profile?.production_name
         });
     },
 
@@ -91,6 +133,28 @@ export const ExportService = {
      * Specialized export for Products
      */
     exportProducts: (products, t, ingredients, format = 'xlsx') => {
+        if (format === '1c') {
+            const headers = {
+                id: 'Код',
+                name: 'Наименование',
+                quantity: 'Количество',
+                unit: 'Ед.Изм.'
+            };
+            const data = products.map(p => ({
+                id: p.id.substring(0, 8),
+                name: p.name,
+                quantity: p.quantity,
+                unit: p.unit
+            }));
+            return ExportService.exportToExcel(data, {
+                filename: `1C_Products`,
+                sheetName: '1C',
+                headers,
+                format: 'csv',
+                productionName: t.profile?.production_name
+            });
+        }
+
         const headers = {
             name: t.products.name,
             quantity: t.products.quantity,
@@ -116,7 +180,8 @@ export const ExportService = {
             filename: `Products_${t.profile?.production_name || 'Production'}`,
             sheetName: t.products.title,
             headers,
-            format
+            format,
+            productionName: t.profile?.production_name
         });
     },
 
@@ -140,7 +205,8 @@ export const ExportService = {
             filename: `History_${t.profile?.production_name || 'Production'}`,
             sheetName: t.history.title,
             headers,
-            format
+            format,
+            productionName: t.profile?.production_name
         });
     },
 

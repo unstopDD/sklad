@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useInventoryStore } from '../../store/inventoryStore';
+import { useLang } from '../../i18n';
 import { Factory, ArrowRight } from 'lucide-react';
 
 const SetupProduction = () => {
     const { user, setProfile } = useInventoryStore();
+    const { t } = useLang();
     const [name, setName] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -42,10 +44,9 @@ const SetupProduction = () => {
             await supabase.from('units').insert(defaultUnits);
 
             setProfile(newProfile);
-            // App.jsx перенаправит на Dashboard
         } catch (error) {
             console.error('Setup error:', error);
-            alert('Ошибка при сохранении: ' + error.message);
+            alert(t.setup.error + error.message);
         } finally {
             setLoading(false);
         }
@@ -102,14 +103,14 @@ const SetupProduction = () => {
                         color: '#2d3748',
                         marginBottom: '8px'
                     }}>
-                        Назовите ваше производство
+                        {t.setup.title}
                     </h1>
                     <p style={{
                         color: '#718096',
                         fontSize: '14px',
                         lineHeight: '1.5'
                     }}>
-                        Это создаст ваше личное рабочее пространство. Никто кроме вас не увидит эти данные.
+                        {t.setup.desc}
                     </p>
                 </div>
 
@@ -127,7 +128,7 @@ const SetupProduction = () => {
                             color: '#2d3748',
                             marginBottom: '8px'
                         }}>
-                            Название
+                            {t.setup.nameLabel}
                         </label>
                         <input
                             type="text"
@@ -135,7 +136,9 @@ const SetupProduction = () => {
                             required
                             value={name}
                             onChange={(e) => setName(e.target.value)}
-                            placeholder="Моя Пекарня, Цех №1..."
+                            onInvalid={e => e.target.setCustomValidity(t.setup.nameRequired)}
+                            onInput={e => e.target.setCustomValidity('')}
+                            placeholder={t.setup.placeholder}
                             autoFocus
                             style={{
                                 width: '100%',
@@ -184,7 +187,7 @@ const SetupProduction = () => {
                             e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)';
                         }}
                     >
-                        {loading ? 'Создаем...' : 'Создать пространство'}
+                        {loading ? t.setup.loading : t.setup.submit}
                         {!loading && <ArrowRight size={20} />}
                     </button>
                 </form>

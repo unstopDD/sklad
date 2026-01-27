@@ -23,6 +23,7 @@ export const LangProvider = ({ children }) => {
 
     useEffect(() => {
         localStorage.setItem('sklad-language', lang);
+        document.documentElement.lang = lang;
     }, [lang]);
 
     const t = appTranslations[lang];
@@ -59,10 +60,15 @@ export const LanguageSelector = ({ className = '' }) => {
         <div className={`relative ${className}`}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 hover:border-blue-400 dark:hover:border-blue-600 transition-all text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 shadow-sm active:scale-[0.98]"
             >
-                <span className="text-lg">{currentLang?.flag}</span>
-                <span className="hidden sm:inline text-gray-700 dark:text-gray-300">{currentLang?.name}</span>
+                <div className="flex items-center gap-3">
+                    <span className="text-lg leading-none filter drop-shadow-sm">{currentLang?.flag}</span>
+                    <span>{currentLang?.name}</span>
+                </div>
+                <div className="text-gray-400 dark:text-gray-500">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+                </div>
             </button>
 
             {isOpen && (

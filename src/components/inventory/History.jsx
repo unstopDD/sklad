@@ -3,12 +3,15 @@ import { Clock, Factory, Trash2, FileText, Download, FileSpreadsheet } from 'luc
 import { useInventoryStore } from '../../store/inventoryStore';
 import { ExportService } from '../../utils/ExportService';
 import ExportModal from '../ui/ExportModal';
+import UpsellModal from '../ui/UpsellModal';
 import { useLang } from '../../i18n';
 
 const History = () => {
-    const { history, clearHistory } = useInventoryStore();
+    const { history, clearHistory, profile } = useInventoryStore();
     const { t, currentLang } = useLang();
     const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+    const [isUpsellOpen, setIsUpsellOpen] = useState(false);
+    const isPro = profile?.subscription_plan === 'pro' || profile?.subscription_plan === 'business';
 
     const getTranslatedType = (type) => {
         switch (type) {
@@ -83,6 +86,17 @@ const History = () => {
                                 <Download size={18} className="text-[var(--primary)]" />
                                 <span className="font-bold hidden sm:inline">{t.common.export}</span>
                             </button>
+                            <button
+                                onClick={() => setIsUpsellOpen(true)}
+                                className="btn bg-gradient-to-r from-purple-500 to-indigo-600 text-white border-none hover:shadow-lg hover:shadow-purple-500/20 transition-all gap-2"
+                                title={t.upsell.export1C}
+                            >
+                                <FileSpreadsheet size={18} />
+                                <span className="font-bold hidden sm:inline">{t.upsell.export1C}</span>
+                                {!isPro && (
+                                    <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded font-black">PRO</span>
+                                )}
+                            </button>
                             <button onClick={clearHistory} className="btn btn-secondary text-sm">
                                 <Trash2 size={16} /> {t.history.clear}
                             </button>
@@ -155,6 +169,15 @@ const History = () => {
                 isOpen={isExportModalOpen}
                 onClose={() => setIsExportModalOpen(false)}
                 onExport={(format) => ExportService.exportHistory(history, t, format)}
+            />
+
+            {/* Upsell Modal for 1C */}
+            <UpsellModal
+                isOpen={isUpsellOpen}
+                onClose={() => setIsUpsellOpen(false)}
+                featureName={t.upsell.export1C}
+                benefitTitle={t.upsell.export1CBenefit}
+                benefitDesc={t.upsell.export1CDesc}
             />
         </div>
     );

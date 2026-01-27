@@ -26,7 +26,22 @@ export const useInventoryStore = create((set, get) => ({
     loading: false,
     error: null,
     user: null, // Auth state
-    profile: null, // User Profile (Production Name etc)
+    profile: null, // User Profile (Production Name, Plan etc)
+
+    // Plan Limits
+    PLAN_LIMITS: {
+        free: { materials: 15, products: 5, historyDays: 30 },
+        starter: { materials: 70, products: 30, historyDays: null },
+        pro: { materials: 150, products: 50, historyDays: null },
+        business: { materials: Infinity, products: Infinity, historyDays: null }
+    },
+
+    PLAN_RANK: {
+        free: 0,
+        starter: 1,
+        pro: 2,
+        business: 3
+    },
 
     // Auth Actions
     setUser: (user) => set({ user }),
@@ -86,6 +101,56 @@ export const useInventoryStore = create((set, get) => ({
         } catch (e) {
             console.error('[updateProductionName] Error:', e);
             get().addToast('Ошибка обновления названия', 'error');
+            return { success: false };
+        }
+    },
+
+    updateCurrency: async (newCurrency) => {
+        const userId = get().user?.id;
+        if (!userId) return { success: false };
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ currency: newCurrency })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            set(state => ({
+                profile: { ...state.profile, currency: newCurrency }
+            }));
+
+            get().addToast('Валюта обновлена', 'success');
+            return { success: true };
+        } catch (e) {
+            console.error('[updateCurrency] Error:', e);
+            get().addToast('Ошибка обновления валюты', 'error');
+            return { success: false };
+        }
+    },
+
+    updatePlan: async (newPlan) => {
+        const userId = get().user?.id;
+        if (!userId) return { success: false };
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ subscription_plan: newPlan })
+                .eq('id', userId);
+
+            if (error) throw error;
+
+            set(state => ({
+                profile: { ...state.profile, subscription_plan: newPlan }
+            }));
+
+            get().addToast(`План обновлен до ${newPlan.toUpperCase()}`, 'success');
+            return { success: true };
+        } catch (e) {
+            console.error('[updatePlan] Error:', e);
+            get().addToast('Ошибка обновления плана', 'error');
             return { success: false };
         }
     },
@@ -200,7 +265,11 @@ export const useInventoryStore = create((set, get) => ({
 
             set({
                 units,
-                ingredients: ingredientsRes.data.map(i => ({ ...i, minStock: i.min_stock })),
+                ingredients: ingredientsRes.data.map(i => ({
+                    ...i,
+                    minStock: i.min_stock,
+                    pricePerUnit: i.price_per_unit || 0
+                })),
                 products: productsRes.data,
                 history: historyRes.data,
                 loading: false
@@ -247,32 +316,55 @@ export const useInventoryStore = create((set, get) => ({
     // Ingredients
     addIngredient: async (ingredient) => {
         const ingredients = get().ingredients;
-        const normalize = (str) => str.trim().toLowerCase();
-        const existing = ingredients.find(i => normalize(i.name) === normalize(ingredient.name));
+        const normalize = (str) => str?.toString().trim().toLowerCase() || '';
 
-        if (existing && existing.id !== ingredient.id) {
-            get().addToast(`Сырьё "${ingredient.name}" уже существует`, 'error');
-            return { success: false };
+        // Search for existing by external_code first, then by name
+        let existing = null;
+        if (ingredient.external_code) {
+            existing = ingredients.find(i => i.external_code === ingredient.external_code);
         }
 
-        // Prepare DB payload (map camelCase to snake_case)
+        if (!existing) {
+            existing = ingredients.find(i => normalize(i.name) === normalize(ingredient.name));
+        }
+
         const userId = get().user?.id;
         if (!userId) return { success: false };
 
+        const targetId = ingredient.id || existing?.id;
+        const isSupplyMode = ingredient.isSupplyMode;
+
+        // Prepare DB payload
+        const finalQuantity = (isSupplyMode && targetId)
+            ? ((existing?.quantity || 0) + (Number(ingredient.quantity) || 0))
+            : ingredient.quantity;
+
         const dbPayload = {
             name: ingredient.name,
-            quantity: ingredient.quantity,
+            quantity: finalQuantity,
             unit: ingredient.unit,
             min_stock: ingredient.minStock,
+            price_per_unit: ingredient.pricePerUnit || 0,
+            external_code: ingredient.external_code || null,
             user_id: userId
         };
 
-        if (ingredient.id) {
+        // Limit Check for NEW ingredients
+        if (!ingredient.id) {
+            const plan = get().profile?.subscription_plan || 'free';
+            const limit = get().PLAN_LIMITS[plan].materials;
+            if (get().ingredients.length >= limit) {
+                get().addToast(`Лимит материалов для плана ${plan.toUpperCase()} исчерпан (${limit})`, 'error');
+                return { success: false, error: 'limit_reached' };
+            }
+        }
+
+        if (targetId) {
             // Update
             const { error } = await supabase
                 .from('ingredients')
                 .update(dbPayload)
-                .eq('id', ingredient.id)
+                .eq('id', targetId)
                 .eq('user_id', userId);
 
             if (error) {
@@ -281,9 +373,10 @@ export const useInventoryStore = create((set, get) => ({
             }
 
             set(state => ({
-                ingredients: state.ingredients.map(i => i.id === ingredient.id ? ingredient : i)
+                ingredients: state.ingredients.map(i => i.id === targetId ? { ...i, ...ingredient, quantity: finalQuantity, id: targetId } : i)
             }));
             await get().logAction('Обновление', `Обновлен: ${ingredient.name}`);
+            return { success: true, updated: true };
         } else {
             // Create
             const { data, error } = await supabase
@@ -299,7 +392,11 @@ export const useInventoryStore = create((set, get) => ({
             }
 
             // Map back to JS
-            const newIngredient = { ...data, minStock: data.min_stock };
+            const newIngredient = {
+                ...data,
+                minStock: data.min_stock,
+                pricePerUnit: data.price_per_unit || 0
+            };
 
             set(state => ({ ingredients: [...state.ingredients, newIngredient] }));
             await get().logAction('Создание', `Добавлен: ${newIngredient.name} (${newIngredient.quantity} ${newIngredient.unit})`);
@@ -345,26 +442,44 @@ export const useInventoryStore = create((set, get) => ({
     // Products
     addProduct: async (product) => {
         const products = get().products;
-        const normalize = (str) => str.trim().toLowerCase();
-        const existing = products.find(p => normalize(p.name) === normalize(product.name));
+        const normalize = (str) => str?.toString().trim().toLowerCase() || '';
 
-        if (existing && existing.id !== product.id) {
-            get().addToast(`Продукт "${product.name}" уже существует`, 'error');
-            return { success: false };
+        // Search existing
+        let existing = null;
+        if (product.external_code) {
+            existing = products.find(p => p.external_code === product.external_code);
+        }
+        if (!existing) {
+            existing = products.find(p => normalize(p.name) === normalize(product.name));
         }
 
         const userId = get().user?.id;
         if (!userId) return { success: false };
 
-        // Clean data for DB (remove warnings and other non-DB fields)
-        const { id, warnings, ...dataForDB } = product;
+        // Limit Check for NEW products
+        if (!product.id) {
+            const plan = get().profile?.subscription_plan || 'free';
+            const limit = get().PLAN_LIMITS[plan].products;
+            if (get().products.length >= limit) {
+                get().addToast(`Лимит продуктов для плана ${plan.toUpperCase()} исчерпан (${limit})`, 'error');
+                return { success: false, error: 'limit_reached' };
+            }
+        }
 
-        if (id) {
+        // Clean data for DB
+        const { id, warnings, isSupplyMode, ...dataForDB } = product;
+        const targetId = id || existing?.id;
+
+        if (isSupplyMode && targetId) {
+            dataForDB.quantity = (Number(existing?.quantity) || 0) + (Number(product.quantity) || 0);
+        }
+
+        if (targetId) {
             // Update
             const { data, error } = await supabase
                 .from('products')
-                .update(dataForDB)
-                .eq('id', id)
+                .update({ ...dataForDB, user_id: userId })
+                .eq('id', targetId)
                 .eq('user_id', userId)
                 .select()
                 .single();
@@ -377,9 +492,10 @@ export const useInventoryStore = create((set, get) => ({
 
             // Update local state with the exact data from DB
             set(state => ({
-                products: state.products.map(p => p.id === id ? data : p)
+                products: state.products.map(p => p.id === targetId ? data : p)
             }));
             await get().logAction('Обновление', `Обновлен продукт: ${data.name}`);
+            return { success: true, updated: true };
         } else {
             // Create
             const { data, error } = await supabase
@@ -528,5 +644,17 @@ export const useInventoryStore = create((set, get) => ({
 
         set({ history: [] });
         await supabase.from('history').delete().eq('user_id', userId);
+    },
+
+    // Cost Calculation Helpers
+    calculateProductCost: (productId) => {
+        const product = get().products.find(p => p.id === productId);
+        if (!product || !product.recipe) return 0;
+
+        return product.recipe.reduce((total, item) => {
+            const ingredient = get().ingredients.find(i => i.id === item.ingredientId);
+            if (!ingredient) return total;
+            return total + (ingredient.pricePerUnit * item.amount);
+        }, 0);
     }
 }));

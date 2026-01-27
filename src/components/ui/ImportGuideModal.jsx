@@ -8,7 +8,7 @@ const ImportGuideModal = ({ isOpen, onClose, type, t, onDownloadTemplate, onProc
 
     const headers = isMaterials
         ? [t.ingredients.name, t.ingredients.quantity, t.ingredients.unit, t.ingredients.minStock]
-        : [t.products.name, t.products.quantity, t.common.unitLabel || t.ingredients.unit, t.products.composition || 'Состав'];
+        : [t.products.name, t.products.quantity, t.common.unitLabel || t.ingredients.unit, t.products.composition];
 
     const sampleRow = isMaterials
         ? [t.ingredients.sampleName, '100', t.ingredients.sampleUnit, '10']
@@ -44,7 +44,7 @@ const ImportGuideModal = ({ isOpen, onClose, type, t, onDownloadTemplate, onProc
                     {/* Table Example */}
                     <div className="space-y-3">
                         <span className="text-xs font-bold uppercase tracking-wider text-[var(--text-light)] ml-1">
-                            {t.common.exampleFormat || 'Пример формата:'}
+                            {t.common.exampleFormat}
                         </span>
                         <div className="border border-[var(--border)] rounded-xl overflow-hidden shadow-sm">
                             <table className="w-full text-left text-xs">
@@ -85,7 +85,7 @@ const ImportGuideModal = ({ isOpen, onClose, type, t, onDownloadTemplate, onProc
                         className="flex-1 btn btn-primary h-11 shadow-lg shadow-blue-500/20"
                     >
                         <Upload size={18} />
-                        {t.common.selectFile || 'Выбрать файл'}
+                        {t.common.selectFile}
                     </button>
                 </div>
             </div>

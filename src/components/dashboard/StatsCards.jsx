@@ -2,15 +2,15 @@ import React from 'react';
 import { Database, Package, Activity, TrendingUp } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, colorClass, subtitle }) => (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-shadow">
         <div className="flex items-start justify-between">
-            <div>
-                <p className="text-sm font-medium text-[var(--text-secondary)] mb-1">{title}</p>
-                <h3 className="text-2xl font-bold text-[var(--text-main)]">{value}</h3>
-                {subtitle && <p className="text-xs text-[var(--text-light)] mt-1">{subtitle}</p>}
+            <div className="min-w-0">
+                <p className="text-[11px] sm:text-sm font-bold text-[var(--text-secondary)] mb-0.5 sm:mb-1 uppercase tracking-wider">{title}</p>
+                <h3 className="text-xl sm:text-2xl font-black text-[var(--text-main)] leading-tight">{value}</h3>
+                {subtitle && <p className="text-[10px] sm:text-xs text-[var(--text-light)] mt-1 font-medium italic truncate">{subtitle}</p>}
             </div>
-            <div className={`p-3 rounded-xl ${colorClass}`}>
-                <Icon size={24} />
+            <div className={`p-2.5 sm:p-3 rounded-xl flex-shrink-0 ${colorClass}`}>
+                <Icon size={20} className="sm:w-6 sm:h-6" />
             </div>
         </div>
     </div>
