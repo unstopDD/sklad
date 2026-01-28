@@ -9,7 +9,8 @@ export default defineConfig({
         // Handle the "preamble" error in Vitest
         fastRefresh: process.env.NODE_ENV !== 'test'
     })],
-    base: '/sklad/',
+    // Use /sklad/ for GitHub Pages, but / for local and Netlify
+    base: process.env.GITHUB_ACTIONS || process.env.GH_PAGES ? '/sklad/' : '/',
     test: {
         globals: true,
         environment: 'jsdom',
